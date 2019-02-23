@@ -429,3 +429,35 @@ describe("Complex Test", () => {
     ).toBe(true);
   });
 });
+describe("Crendential can be an object of simple keys", () => {
+  it("should work with an object", async () => {
+    expect(
+      await checkRules(
+        {
+          action: Action.SELECT,
+          resource: Resource.COMMENT,
+          role: Role.ADMIN
+        },
+        [
+          {
+            role: Role.ADMIN
+          }
+        ]
+      )
+    ).toBe(true);
+    expect(
+      await checkRules(
+        {
+          action: Action.SELECT,
+          resource: Resource.COMMENT,
+          role: Role.ADMIN
+        },
+        [
+          {
+            role: Role.USER
+          }
+        ]
+      )
+    ).toBe(false);
+  });
+});

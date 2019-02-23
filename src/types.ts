@@ -26,17 +26,17 @@ export type SingleRuleValue = CredentialValue;
 
 export type RuleValue = SingleRuleValue | ArrayRuleValue;
 
-export interface Credential {
-  readonly action: Action | Action[];
-  readonly resource: Resource | Resource[];
-  readonly role: Role | Role[];
-}
-
-export interface SingleRule {
+export interface SingleCredential {
   readonly action?: Action;
   readonly resource?: Resource;
   readonly role?: Role;
 }
+
+export type SingleRule = SingleCredential;
+
+export interface ArrayCredential extends Array<Credential> {}
+
+export type Credential = SingleCredential | SingleCredential[];
 
 export interface ObjectRule {
   readonly [index: string]: Rule;

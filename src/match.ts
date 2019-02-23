@@ -1,12 +1,11 @@
 import {
-  ArrayRule,
   Credential,
   CredentialKey,
   CredentialValue,
   isActionRule,
-  ObjectRule,
   Rule,
   RuleValue,
+  SingleCredential,
   SingleRule,
   SingleRuleValue
 } from "./types";
@@ -50,7 +49,7 @@ const checkSingleRuleValue = (
 
 const checkSingleCredential = async (
   rule: SingleRule,
-  credential: Credential
+  credential: SingleCredential
 ) => {
   for (const key in rule) {
     const credentialValue = credential[key as CredentialKey];
@@ -84,12 +83,12 @@ const selectCheckRuleFn = (rule: Rule) => {
 };
 
 export const checkRules = (
-  credentials: Credential[],
+  credentials: Credential,
   rule: Rule
 ): Promise<boolean> => {
   const f = selectCheckRuleFn(rule);
   // @ts-ignore
-  return f(credentials, rule);
+  return f(Array.isArray(credentials) ? credentials : [credentials], rule);
 };
 
 const checkArrayRule = some(checkRules);
