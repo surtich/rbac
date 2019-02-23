@@ -22,6 +22,12 @@ export type SingleCredentialValue = Action | Resource | Role;
 
 export type ArrayCredentialValue = Action[] | Resource[] | Role[];
 
+export interface SingleCredential {
+  readonly action?: Action | Action[];
+  readonly resource?: Resource | Action[];
+  readonly role?: Role | Role[];
+}
+
 export type ArrayRuleValue = ArrayCredentialValue;
 
 export type SingleRuleValue = SingleCredentialValue;
@@ -29,12 +35,6 @@ export type SingleRuleValue = SingleCredentialValue;
 export type CredentialValue = SingleCredentialValue | ArrayCredentialValue;
 
 export type RuleValue = SingleRuleValue | ArrayRuleValue;
-
-export interface SingleCredential {
-  readonly action?: Action | Action[];
-  readonly resource?: Resource | Action[];
-  readonly role?: Role | Role[];
-}
 
 export type SingleRule = SingleCredential;
 
@@ -50,7 +50,7 @@ export interface ArrayRule extends Array<Rule> {}
 
 export type Rule = SingleRule | ObjectRule | ArrayRule;
 
-export const isActionRule = (rule: Rule) => {
+export const isRuleValue = (rule: Rule) => {
   return (
     typeof rule === "object" &&
     Object.keys(rule).every(key => Object.keys(CredentialKey).includes(key))

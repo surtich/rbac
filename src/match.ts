@@ -2,7 +2,7 @@ import {
   Credential,
   CredentialKey,
   CredentialValue,
-  isActionRule,
+  isRuleValue,
   Rule,
   RuleValue,
   SingleCredential,
@@ -82,7 +82,7 @@ const selectCheckRuleValueFn = (ruleValue: RuleValue) => {
 const selectCheckRuleFn = (rule: Rule) => {
   if (Array.isArray(rule)) {
     return some(checkRules);
-  } else if (isActionRule(rule)) {
+  } else if (isRuleValue(rule)) {
     return flip(some(checkSingleCredential));
   } else {
     return all(checkRules);
