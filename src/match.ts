@@ -1,13 +1,15 @@
 import {
-  ActionRule,
   ArrayRule,
+  ArrayRuleValue,
   Credential,
   CredentialKey,
   CredentialValue,
   isActionRule,
   ObjectRule,
   Rule,
-  RuleValue
+  RuleValue,
+  SingleRule,
+  SingleRuleValue
 } from "./types";
 
 const checkObjectRule = async (credentials: Credential[], rule: ObjectRule) => {
@@ -32,16 +34,29 @@ const checkArrayRule = async (credentials: Credential[], rule: ArrayRule) => {
   return false;
 };
 
-const checkRuleValue = (
+const checkArrayRuleValue = async (
   credentialValue: CredentialValue,
-  ruleValue: RuleValue
+  arrayRuleValue: ArrayRuleValue
+) => {
+  for (const ruleValue of arrayRuleValue) {
+    const match = await checkSingleRuleValue(credentialValue, ruleValue);
+    if (match) {
+      return true;
+    }
+  }
+  return false;
+};
+
+const checkSingleRuleValue = (
+  credentialValue: CredentialValue,
+  ruleValue: SingleRuleValue
 ) => {
   return Promise.resolve(credentialValue === ruleValue);
 };
 
 const checkCredentials = async (
   credentials: Credential[],
-  rule: ActionRule
+  rule: SingleRule
 ) => {
   for (const credential of credentials) {
     const match = await checkSingleCredential(credential, rule);
@@ -54,17 +69,27 @@ const checkCredentials = async (
 
 const checkSingleCredential = async (
   credential: Credential,
-  rule: ActionRule
+  rule: SingleRule
 ) => {
   for (const key in rule) {
     const credentialValue = credential[key as CredentialKey];
-    const ruleValue = rule[key as CredentialKey] as RuleValue;
-    const match = await checkRuleValue(credentialValue, ruleValue);
+    const ruleValue = rule[key as CredentialKey] as SingleRuleValue;
+    const f = selectCheckRuleValueFn(ruleValue);
+    // @ts-ignore
+    const match = await f(credentialValue, ruleValue);
     if (!match) {
       return false;
     }
   }
   return true;
+};
+
+const selectCheckRuleValueFn = (ruleValue: RuleValue) => {
+  if (Array.isArray(ruleValue)) {
+    return checkArrayRuleValue;
+  } else {
+    return checkSingleRuleValue;
+  }
 };
 
 const selectCheckRuleFn = (rule: Rule) => {

@@ -252,6 +252,76 @@ describe("Object (AND) tests", () => {
   });
 });
 
+describe("Array rule value tests", () => {
+  it("should work when rule is an array of objects", async () => {
+    expect(
+      await checkRules(
+        [
+          {
+            action: Action.CREATE,
+            resource: Resource.COMMENT,
+            role: Role.ADMIN
+          }
+        ],
+        [
+          {
+            role: Role.USER
+          },
+          {
+            role: Role.ADMIN
+          }
+        ]
+      )
+    ).toBe(true);
+    expect(
+      await checkRules(
+        [
+          {
+            action: Action.CREATE,
+            resource: Resource.COMMENT,
+            role: Role.ADMIN
+          }
+        ],
+        [
+          {
+            role: Role.USER
+          }
+        ]
+      )
+    ).toBe(false);
+  });
+  it("should work when rule value is an array of rule values", async () => {
+    expect(
+      await checkRules(
+        [
+          {
+            action: Action.CREATE,
+            resource: Resource.COMMENT,
+            role: Role.ADMIN
+          }
+        ],
+        {
+          role: [Role.USER, Role.ADMIN]
+        }
+      )
+    ).toBe(true);
+    expect(
+      await checkRules(
+        [
+          {
+            action: Action.CREATE,
+            resource: Resource.COMMENT,
+            role: Role.ADMIN
+          }
+        ],
+        {
+          role: [Role.USER]
+        }
+      )
+    ).toBe(false);
+  });
+});
+
 describe("Complex Test", () => {
   it("should work mixing OR & AND", async () => {
     expect(

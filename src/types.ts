@@ -20,15 +20,19 @@ export enum Role {
 
 export type CredentialValue = Action | Resource | Role;
 
-export type RuleValue = CredentialValue;
+export type ArrayRuleValue = Action[] | Resource[] | Role[];
+
+export type SingleRuleValue = CredentialValue;
+
+export type RuleValue = SingleRuleValue | ArrayRuleValue;
 
 export interface Credential {
-  readonly action: Action;
-  readonly resource: Resource;
-  readonly role: Role;
+  readonly action: Action | Action[];
+  readonly resource: Resource | Resource[];
+  readonly role: Role | Role[];
 }
 
-export interface ActionRule {
+export interface SingleRule {
   readonly action?: Action;
   readonly resource?: Resource;
   readonly role?: Role;
@@ -40,7 +44,7 @@ export interface ObjectRule {
 
 export interface ArrayRule extends Array<Rule> {}
 
-export type Rule = ActionRule | ObjectRule | ArrayRule;
+export type Rule = SingleRule | ObjectRule | ArrayRule;
 
 export const isActionRule = (rule: Rule) => {
   return (
