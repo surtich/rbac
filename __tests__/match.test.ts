@@ -252,76 +252,6 @@ describe("Object (AND) tests", () => {
   });
 });
 
-describe("Array rule value tests", () => {
-  it("should work when rule is an array of objects", async () => {
-    expect(
-      await checkRules(
-        [
-          {
-            action: Action.CREATE,
-            resource: Resource.COMMENT,
-            role: Role.ADMIN
-          }
-        ],
-        [
-          {
-            role: Role.USER
-          },
-          {
-            role: Role.ADMIN
-          }
-        ]
-      )
-    ).toBe(true);
-    expect(
-      await checkRules(
-        [
-          {
-            action: Action.CREATE,
-            resource: Resource.COMMENT,
-            role: Role.ADMIN
-          }
-        ],
-        [
-          {
-            role: Role.USER
-          }
-        ]
-      )
-    ).toBe(false);
-  });
-  it("should work when rule value is an array of rule values", async () => {
-    expect(
-      await checkRules(
-        [
-          {
-            action: Action.CREATE,
-            resource: Resource.COMMENT,
-            role: Role.ADMIN
-          }
-        ],
-        {
-          role: [Role.USER, Role.ADMIN]
-        }
-      )
-    ).toBe(true);
-    expect(
-      await checkRules(
-        [
-          {
-            action: Action.CREATE,
-            resource: Resource.COMMENT,
-            role: Role.ADMIN
-          }
-        ],
-        {
-          role: [Role.USER]
-        }
-      )
-    ).toBe(false);
-  });
-});
-
 describe("Complex Test", () => {
   it("should work mixing OR & AND", async () => {
     expect(
@@ -366,8 +296,46 @@ describe("Complex Test", () => {
         ]
       )
     ).toBe(false);
+    expect(
+      await checkRules(
+        [
+          {
+            action: Action.CREATE,
+            resource: Resource.COMMENT,
+            role: Role.ADMIN
+          }
+        ],
+        [
+          {
+            rule1: {
+              rule1_1: { role: Role.ADMIN },
+              rule1_2: { resource: Resource.COMMENT }
+            }
+          }
+        ]
+      )
+    ).toBe(true);
+    expect(
+      await checkRules(
+        [
+          {
+            action: Action.CREATE,
+            resource: Resource.COMMENT,
+            role: Role.ADMIN
+          }
+        ],
+        [
+          {
+            rule1: {
+              rule1_1: { role: Role.USER },
+              rule1_2: { resource: Resource.COMMENT }
+            }
+          }
+        ]
+      )
+    ).toBe(false);
   });
-  it("should work with deepr nesting", async () => {
+  it("should work with deeper nesting", async () => {
     expect(
       await checkRules(
         [

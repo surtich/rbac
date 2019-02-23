@@ -1,6 +1,5 @@
 import {
   ArrayRule,
-  ArrayRuleValue,
   Credential,
   CredentialKey,
   CredentialValue,
@@ -12,40 +11,35 @@ import {
   SingleRuleValue
 } from "./types";
 
-const checkObjectRule = async (credentials: Credential[], rule: ObjectRule) => {
-  let ruleKey: string;
-  for (ruleKey in rule) {
-    const actualRule: Rule = rule[ruleKey];
-    const match = await checkRules(credentials, actualRule);
-    if (!match) {
-      return false;
-    }
-  }
-  return true;
-};
+function flip<T, K, L>(f: (x: K, y: T) => L) {
+  return (y: T, x: K) => f(x, y);
+}
 
-const checkArrayRule = async (credentials: Credential[], rule: ArrayRule) => {
-  for (const ruleValue of rule) {
-    const match = await checkRules(credentials, ruleValue);
-    if (match) {
-      return true;
+function some<T, K>(comparator: (x: T, y: K) => Promise<boolean>) {
+  return async (x: T, ys: K[]) => {
+    for (const y of ys) {
+      const match = await comparator(x, y);
+      if (match) {
+        return true;
+      }
     }
-  }
-  return false;
-};
+    return false;
+  };
+}
 
-const checkArrayRuleValue = async (
-  credentialValue: CredentialValue,
-  arrayRuleValue: ArrayRuleValue
-) => {
-  for (const ruleValue of arrayRuleValue) {
-    const match = await checkSingleRuleValue(credentialValue, ruleValue);
-    if (match) {
-      return true;
+function all<T, K>(comparator: (x: T, y: K) => Promise<boolean>) {
+  return async (x: T, obj: { [index: string]: K }) => {
+    let key: string;
+    for (key in obj) {
+      const y: K = obj[key];
+      const match = await comparator(x, y);
+      if (!match) {
+        return false;
+      }
     }
-  }
-  return false;
-};
+    return true;
+  };
+}
 
 const checkSingleRuleValue = (
   credentialValue: CredentialValue,
@@ -54,22 +48,9 @@ const checkSingleRuleValue = (
   return Promise.resolve(credentialValue === ruleValue);
 };
 
-const checkCredentials = async (
-  credentials: Credential[],
-  rule: SingleRule
-) => {
-  for (const credential of credentials) {
-    const match = await checkSingleCredential(credential, rule);
-    if (match) {
-      return true;
-    }
-  }
-  return false;
-};
-
 const checkSingleCredential = async (
-  credential: Credential,
-  rule: SingleRule
+  rule: SingleRule,
+  credential: Credential
 ) => {
   for (const key in rule) {
     const credentialValue = credential[key as CredentialKey];
@@ -102,8 +83,19 @@ const selectCheckRuleFn = (rule: Rule) => {
   }
 };
 
-export const checkRules = async (credentials: Credential[], rule: Rule) => {
+export const checkRules = (
+  credentials: Credential[],
+  rule: Rule
+): Promise<boolean> => {
   const f = selectCheckRuleFn(rule);
   // @ts-ignore
   return f(credentials, rule);
 };
+
+const checkArrayRule = some(checkRules);
+
+const checkArrayRuleValue = some(checkSingleRuleValue);
+
+const checkCredentials = flip(some(checkSingleCredential));
+
+const checkObjectRule = all(checkRules);
