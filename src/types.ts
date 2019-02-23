@@ -18,18 +18,22 @@ export enum Role {
   USER = "USER"
 }
 
-export type CredentialValue = Action | Resource | Role;
+export type SingleCredentialValue = Action | Resource | Role;
 
-export type ArrayRuleValue = Action[] | Resource[] | Role[];
+export type ArrayCredentialValue = Action[] | Resource[] | Role[];
 
-export type SingleRuleValue = CredentialValue;
+export type ArrayRuleValue = ArrayCredentialValue;
+
+export type SingleRuleValue = SingleCredentialValue;
+
+export type CredentialValue = SingleCredentialValue | ArrayCredentialValue;
 
 export type RuleValue = SingleRuleValue | ArrayRuleValue;
 
 export interface SingleCredential {
-  readonly action?: Action;
-  readonly resource?: Resource;
-  readonly role?: Role;
+  readonly action?: Action | Action[];
+  readonly resource?: Resource | Action[];
+  readonly role?: Role | Role[];
 }
 
 export type SingleRule = SingleCredential;

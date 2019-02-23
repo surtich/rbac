@@ -10,6 +10,10 @@ import {
   SingleRuleValue
 } from "./types";
 
+function equalComparator<T>(x: T, y: T): Promise<boolean> {
+  return Promise.resolve(x === y);
+}
+
 function flip<T, K, L>(f: (x: K, y: T) => L) {
   return (y: T, x: K) => f(x, y);
 }
@@ -40,13 +44,6 @@ function all<T, K>(comparator: (x: T, y: K) => Promise<boolean>) {
   };
 }
 
-const checkSingleRuleValue = (
-  credentialValue: CredentialValue,
-  ruleValue: SingleRuleValue
-) => {
-  return Promise.resolve(credentialValue === ruleValue);
-};
-
 const checkSingleCredential = async (
   rule: SingleRule,
   credential: SingleCredential
@@ -64,9 +61,19 @@ const checkSingleCredential = async (
   return true;
 };
 
+const checkSingleRuleValue = (
+  credentialValue: CredentialValue,
+  ruleValue: SingleRuleValue
+): Promise<boolean> => {
+  if (Array.isArray(credentialValue)) {
+    return some(checkSingleRuleValue)(ruleValue, credentialValue);
+  }
+  return equalComparator(credentialValue, ruleValue);
+};
+
 const selectCheckRuleValueFn = (ruleValue: RuleValue) => {
   if (Array.isArray(ruleValue)) {
-    return checkArrayRuleValue;
+    return some(checkSingleRuleValue);
   } else {
     return checkSingleRuleValue;
   }
@@ -74,11 +81,11 @@ const selectCheckRuleValueFn = (ruleValue: RuleValue) => {
 
 const selectCheckRuleFn = (rule: Rule) => {
   if (Array.isArray(rule)) {
-    return checkArrayRule;
+    return some(checkRules);
   } else if (isActionRule(rule)) {
-    return checkCredentials;
+    return flip(some(checkSingleCredential));
   } else {
-    return checkObjectRule;
+    return all(checkRules);
   }
 };
 
@@ -90,11 +97,3 @@ export const checkRules = (
   // @ts-ignore
   return f(Array.isArray(credentials) ? credentials : [credentials], rule);
 };
-
-const checkArrayRule = some(checkRules);
-
-const checkArrayRuleValue = some(checkSingleRuleValue);
-
-const checkCredentials = flip(some(checkSingleCredential));
-
-const checkObjectRule = all(checkRules);

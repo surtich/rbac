@@ -461,3 +461,72 @@ describe("Crendential can be an object of simple keys", () => {
     ).toBe(false);
   });
 });
+
+describe("Crendential values can be an array", () => {
+  it("should work with one rule array and simple credential", async () => {
+    expect(
+      await checkRules(
+        {
+          role: Role.USER
+        },
+        {
+          role: [Role.ADMIN, Role.USER]
+        }
+      )
+    ).toBe(true);
+    expect(
+      await checkRules(
+        {
+          role: Role.USER
+        },
+        {
+          role: [Role.ADMIN]
+        }
+      )
+    ).toBe(false);
+  });
+  it("should work with one credential array and simple rule", async () => {
+    expect(
+      await checkRules(
+        {
+          role: [Role.ADMIN, Role.USER]
+        },
+        {
+          role: Role.USER
+        }
+      )
+    ).toBe(true);
+    expect(
+      await checkRules(
+        {
+          role: [Role.USER]
+        },
+        {
+          role: Role.ADMIN
+        }
+      )
+    ).toBe(false);
+  });
+  it("should work with credential and rule be both arrays", async () => {
+    expect(
+      await checkRules(
+        {
+          role: [Role.ADMIN, Role.USER]
+        },
+        {
+          role: [Role.USER]
+        }
+      )
+    ).toBe(true);
+    expect(
+      await checkRules(
+        {
+          role: [Role.USER]
+        },
+        {
+          role: [Role.ADMIN]
+        }
+      )
+    ).toBe(false);
+  });
+});
