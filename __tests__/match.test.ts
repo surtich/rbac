@@ -5,6 +5,17 @@ describe("By default policy is deny", () => {
   it("should fail with empty credentials and empty rules", async () => {
     expect(await checkRules([], [])).toBe(false);
     expect(await checkRules([], {})).toBe(false);
+    expect(await checkRules({}, [])).toBe(false);
+    expect(await checkRules({}, {})).toBe(false);
+    expect(await checkRules([{}], [])).toBe(false);
+    expect(await checkRules({}, [{}])).toBe(false);
+    expect(await checkRules({}, [{}, {}])).toBe(false);
+    expect(await checkRules({}, { x: {}, y: {} })).toBe(false);
+    expect(await checkRules({}, { role: Role.ADMIN })).toBe(false);
+    expect(await checkRules([], { role: Role.ADMIN })).toBe(false);
+    expect(await checkRules({ role: Role.ADMIN }, {})).toBe(false);
+    expect(await checkRules({ role: Role.ADMIN }, [])).toBe(false);
+    expect(await checkRules({}, { role: [Role.ADMIN] })).toBe(false);
   });
   it("should fail with no empty credentials and empty rules", async () => {
     expect(
@@ -691,12 +702,12 @@ describe("Object rule value tests", () => {
     ).toBe(false);
   });
 });
-describe("Rule could be a funtion", () => {
-  it("should work with navive functions", async () => {
+describe("Rule could be a function", () => {
+  it("should work with naive functions", async () => {
     expect(await checkRules([], () => Promise.resolve(true))).toBe(true);
     expect(await checkRules([], () => Promise.resolve(false))).toBe(false);
   });
-  it("if credentials params are received by the function", async () => {
+  it("if credential params are received by the function", async () => {
     expect(
       await checkRules([{ action: Action.GET }], ([{ action }]) => {
         return Promise.resolve(action === Action.GET);
@@ -730,5 +741,43 @@ describe("Rule could be a funtion", () => {
         g: () => Promise.resolve(false)
       })
     ).toBe(false);
+  });
+});
+describe("Rule value could be a function", () => {
+  it("should work with naive functions", async () => {
+    expect(
+      await checkRules({}, { predicate: () => Promise.resolve(true) })
+    ).toBe(true);
+    expect(
+      await checkRules([], { predicate: () => Promise.resolve(false) })
+    ).toBe(false);
+  });
+  it("if credential value params are received by the function", async () => {
+    expect(
+      await checkRules([{ action: Action.GET }], ([{ action }]) => {
+        return Promise.resolve(action === Action.GET);
+      })
+    ).toBe(true);
+    expect(
+      await checkRules(
+        [{ action: Action.GET }, { resource: Resource.COMMENT }],
+        ([{ action }, { resource }]) => {
+          return Promise.resolve(
+            action === Action.GET && resource === Resource.COMMENT
+          );
+        }
+      )
+    ).toBe(true);
+  });
+  it("if functions and keys work well together", async () => {
+    expect(
+      await checkRules(
+        { role: Role.ADMIN, action: Action.GET },
+        {
+          action: Action.GET,
+          predicate: () => Promise.resolve(true)
+        }
+      )
+    ).toBe(true);
   });
 });

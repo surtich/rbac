@@ -3,6 +3,13 @@ export enum CredentialKey {
   "resource" = "resource",
   "role" = "role"
 }
+export enum RuleKey {
+  "action" = "action",
+  "resource" = "resource",
+  "role" = "role",
+  "predicate" = "predicate"
+}
+
 export enum Action {
   CREATE = "CREATE",
   FIND = "FIND",
@@ -52,7 +59,7 @@ export interface SingleCredential {
 }
 
 export interface SingleRule extends SingleCredential {
-  readonly predicate?: IArrayCredentialValue<PredicateRule>;
+  readonly predicate?: ICredentialValue<PredicateRule>;
 }
 
 export type SingleRuleValue = SingleCredentialValue;
@@ -84,6 +91,7 @@ export type Rule = SingleRule | ObjectRule | ArrayRule | PredicateRule;
 export const isRuleValue = (rule: Rule) => {
   return (
     typeof rule === "object" &&
-    Object.keys(rule).every(key => Object.keys(CredentialKey).includes(key))
+    Object.keys(rule).length > 0 &&
+    Object.keys(rule).every(key => Object.keys(RuleKey).includes(key))
   );
 };
