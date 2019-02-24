@@ -1,5 +1,5 @@
 import { checkGuard } from "../src/match";
-import { Action, Guard, Resource, Role, SingleRule } from "../src/types";
+import { Action, Guard, Resource, Role, Rule, SingleRule } from "../src/types";
 
 describe("By default policy is deny", () => {
   it("should fail with empty rules and empty guards", async () => {
@@ -1068,5 +1068,81 @@ describe("Rule keys could be funtions and objects", () => {
         { role1: { role: Role.ADMIN }, role2: { role: Role.GUESS } }
       )
     ).toBe(false);
+  });
+});
+
+describe("guard and rule function values can receive additional data", () => {
+  it("if guard function receives the additional passed parameters", async () => {
+    expect(
+      await checkGuard<Action>(
+        { role: Role.ADMIN, resource: Resource.COMMENT },
+        ([{ role }], action) => {
+          return Promise.resolve(
+            role === Role.ADMIN && action === Action.CREATE
+          );
+        },
+        Action.CREATE
+      )
+    ).toBe(true);
+  });
+  it("if role key guard function receives the additional passed parameters", async () => {
+    expect(
+      await checkGuard<Action>(
+        { role: Role.ADMIN, resource: Resource.COMMENT },
+        {
+          role: (role: Role, action: Action) => {
+            return Promise.resolve(
+              role === Role.ADMIN && action === Action.CREATE
+            );
+          }
+        },
+        Action.CREATE
+      )
+    ).toBe(true);
+  });
+  it("if predicate key guard function receives the additional passed parameters", async () => {
+    expect(
+      await checkGuard<Action>(
+        { role: Role.ADMIN, resource: Resource.COMMENT },
+        {
+          predicate: (rule: SingleRule, action: Action) => {
+            return Promise.resolve(
+              rule.role === Role.ADMIN && action === Action.CREATE
+            );
+          }
+        },
+        Action.CREATE
+      )
+    ).toBe(true);
+  });
+
+  it("if rule function receives the additional passed parameters", async () => {
+    expect(
+      await checkGuard<Action>(
+        {
+          role: (role, action) => {
+            return Promise.resolve(
+              role === Role.ADMIN && action === Action.CREATE
+            );
+          }
+        },
+        { role: Role.ADMIN },
+        Action.CREATE
+      )
+    ).toBe(true);
+  });
+  it("if guard function receives the extra passed parameters", async () => {
+    expect(
+      await checkGuard<Action, Resource>(
+        { role: Role.ADMIN },
+        ([{ role }], action, resource) => {
+          return Promise.resolve(
+            role === Role.ADMIN && action === Action.CREATE && resource === Resource.COMMENT
+          );
+        },
+        Action.CREATE,
+        Resource.COMMENT
+      )
+    ).toBe(true);
   });
 });

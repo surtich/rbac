@@ -3,16 +3,22 @@ import { Guard, Role, Rule, SingleRule } from "./types";
 
 export type UserCredentials = { roles?: Role[]; rules?: SingleRule[] };
 
-export interface SecureConfig {
+export interface SecureConfig<
+  AdditionalDataType,
+  SuccessType = any,
+  FailType = any
+> {
   readonly getCredentials: () => Promise<UserCredentials>;
-  readonly onDefaultSuccess?: any;
-  readonly onDefaultFail?: any;
+  readonly data?: AdditionalDataType;
+  readonly onDefaultSuccess?: SuccessType;
+  readonly onDefaultFail?: FailType;
 }
 
-interface SecureParams {
+interface SecureParams<AdditionalDataType, SuccessType = any, FailType = any> {
   readonly guards?: Guard;
-  readonly onSuccess?: any;
-  readonly onFail?: any;
+  readonly extraData?: AdditionalDataType;
+  readonly onSuccess?: SuccessType;
+  readonly onFail?: FailType;
 }
 
 type SecureResult = any;
@@ -27,29 +33,32 @@ const returnSecureResult = (value: any) => {
   }
 };
 
-export const secure = ({
+export function secure<AdditionalDataType = any>({
   getCredentials,
   onDefaultSuccess = true,
-  onDefaultFail = false
-}: SecureConfig) => async (
-  secureParams: SecureParams = {}
-): Promise<SecureResult> => {
-  const { guards = {}, onSuccess, onFail } = secureParams;
-  const { roles = [], rules = [] } = ({} = await getCredentials());
+  onDefaultFail = false,
+  data
+}: SecureConfig<AdditionalDataType>) {
+  return async function _secure<ExtraDataType = any>(
+    secureParams: SecureParams<ExtraDataType> = {}
+  ): Promise<SecureResult> {
+    const { guards = {}, onSuccess, onFail, extraData } = secureParams;
+    const { roles = [], rules = [] } = ({} = await getCredentials());
 
-  if (roles.includes(Role.ADMIN)) {
-    return Promise.resolve(true);
-  }
+    if (roles.includes(Role.ADMIN)) {
+      return Promise.resolve(true);
+    }
 
-  const result = await checkGuard(rules, guards);
+    const result = await checkGuard(rules, guards, data, extraData);
 
-  return returnSecureResult(
-    result === true
-      ? "onSuccess" in secureParams
-        ? onSuccess
-        : onDefaultSuccess
-      : "onFail" in secureParams
-      ? onFail
-      : onDefaultFail
-  );
-};
+    return returnSecureResult(
+      result === true
+        ? "onSuccess" in secureParams
+          ? onSuccess
+          : onDefaultSuccess
+        : "onFail" in secureParams
+        ? onFail
+        : onDefaultFail
+    );
+  };
+}

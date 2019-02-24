@@ -143,3 +143,32 @@ describe("should work when changing inline returns", () => {
     ).toBe("KO");
   });
 });
+describe("can pass data and extraData", () => {
+  const s = secure<Action>({
+    data: Action.CREATE,
+    getCredentials
+  });
+  it("should pass data", async () => {
+    expect(
+      await s({
+        guards: {
+          action: (_: any, action: Action) =>
+            Promise.resolve(action === Action.CREATE)
+        }
+      })
+    ).toBe(true);
+  });
+  it("should pass extra data", async () => {
+    expect(
+      await s<Resource>({
+        extraData: Resource.COMMENT,
+        guards: {
+          action: (_: any, action: Action, resource: Resource) =>
+            Promise.resolve(
+              action === Action.CREATE && resource === Resource.COMMENT
+            )
+        }
+      })
+    ).toBe(true);
+  });
+});

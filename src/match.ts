@@ -21,18 +21,13 @@ function equalComparator<T>(x: T, y: T): Promise<boolean> {
   return Promise.resolve(x === y);
 }
 
-function predicateComparator<T>(
-  x: T,
-  f: (y: T) => Promise<boolean>
-): Promise<boolean> {
-  return f(x);
-}
-
-function selectLastComparator<T>(y: T | IPredicate<T>) {
-  if (typeof y === "function") {
-    return predicateComparator;
-  }
-  return equalComparator;
+function createPredicateComparator<D, E>(data: D, extraData: E) {
+  return function predicateComparator<K>(
+    x: K,
+    f: (x: K, y: D, z: E) => Promise<boolean>
+  ): Promise<boolean> {
+    return f(x, data, extraData);
+  };
 }
 
 function flip<T, K, L>(f: (x: K, y: T) => L) {
@@ -69,77 +64,94 @@ function all<T, K>(comparator: Comparator<T, K>) {
   };
 }
 
-const checkGuardValue = (
-  ruleValue: RuleValue,
-  guardValue: GuardValue
-): Promise<boolean> => {
-  if (Array.isArray(guardValue)) {
-    return some(checkGuardValue)(ruleValue, guardValue);
-  } else if (typeof guardValue === "function") {
-    return predicateComparator(ruleValue, guardValue);
-  } else if (typeof guardValue === "object") {
-    return all(checkGuardValue)(ruleValue, guardValue);
-  }
-  return checkSingleGuardValue(ruleValue, guardValue);
-};
+export function checkGuard<AdditonalDataType = any, ExtraDataType = any>(
+  rules: Rule,
+  guards: Guard,
+  data?: AdditonalDataType,
+  extraData?: ExtraDataType
+): Promise<boolean> {
+  const predicateComparator = createPredicateComparator<
+    AdditonalDataType,
+    ExtraDataType
+  >(data as AdditonalDataType, extraData as ExtraDataType);
 
-const checkSingleGuardValue = (
-  ruleValue: RuleValue,
-  guardValue: SingleGuardValue
-): Promise<boolean> => {
-  if (Array.isArray(ruleValue)) {
-    return some(checkSingleGuardValue)(guardValue, ruleValue);
-  } else if (typeof ruleValue === "function") {
-    return predicateComparator(guardValue, ruleValue);
-  } else if (typeof ruleValue === "object") {
+  function selectLastComparator<T>(y: T | IPredicate<T>) {
+    if (typeof y === "function") {
+      return predicateComparator;
+    }
+    return equalComparator;
+  }
+
+  const checkGuardValue = (
+    ruleValue: RuleValue,
+    guardValue: GuardValue
+  ): Promise<boolean> => {
+    if (Array.isArray(guardValue)) {
+      return some(checkGuardValue)(ruleValue, guardValue);
+    } else if (typeof guardValue === "function") {
+      return predicateComparator(ruleValue, guardValue);
+    } else if (typeof guardValue === "object") {
+      return all(checkGuardValue)(ruleValue, guardValue);
+    }
+    return checkSingleGuardValue(ruleValue, guardValue);
+  };
+
+  const checkSingleGuardValue = (
+    ruleValue: RuleValue,
+    guardValue: SingleGuardValue
+  ): Promise<boolean> => {
+    if (Array.isArray(ruleValue)) {
+      return some(checkSingleGuardValue)(guardValue, ruleValue);
+    } else if (typeof ruleValue === "function") {
+      return predicateComparator(guardValue, ruleValue);
+    } else if (typeof ruleValue === "object") {
+      // @ts-ignore
+      return all(selectLastComparator(guardValue))(guardValue, ruleValue);
+    }
     // @ts-ignore
-    return all(selectLastComparator(guardValue))(guardValue, ruleValue);
-  }
-  // @ts-ignore
-  return selectLastComparator(guardValue)(ruleValue, guardValue);
-};
+    return selectLastComparator(guardValue)(ruleValue, guardValue);
+  };
 
-const checkSingleRule = async (guard: SingleGuard, rule: SingleRule) => {
-  let match = true;
-  for (const key in guard) {
-    const ruleValue = rule[key as RuleKey] as RuleValue;
-    const guardValue = guard[key as GuardKey] as GuardValue;
-    if (!ruleValue) {
-      match = await missingRuleKeyBehavior(guardValue, rule, key as GuardKey);
-    } else {
-      match = await checkGuardValue(ruleValue, guardValue);
+  const missingRuleKeyBehavior = (
+    guardValue: GuardValue,
+    rule: SingleRule,
+    _key: GuardKey
+  ): Promise<boolean> => {
+    if (typeof guardValue === "function") {
+      const g = guardValue as PredicateGuardValue;
+      return predicateComparator(rule, g);
     }
-    if (!match) {
-      return false;
+    return Promise.resolve(false);
+  };
+
+  const checkSingleRule = async (guard: SingleGuard, rule: SingleRule) => {
+    let match = true;
+    for (const key in guard) {
+      const ruleValue = rule[key as RuleKey] as RuleValue;
+      const guardValue = guard[key as GuardKey] as GuardValue;
+      if (!ruleValue) {
+        match = await missingRuleKeyBehavior(guardValue, rule, key as GuardKey);
+      } else {
+        match = await checkGuardValue(ruleValue, guardValue);
+      }
+      if (!match) {
+        return false;
+      }
     }
-  }
-  return match;
-};
+    return match;
+  };
 
-const missingRuleKeyBehavior = (
-  guardValue: GuardValue,
-  rule: SingleRule,
-  _key: GuardKey
-): Promise<boolean> => {
-  if (typeof guardValue === "function") {
-    const f = guardValue as PredicateGuardValue;
-    return f(rule);
-  }
-  return Promise.resolve(false);
-};
+  const selectCheckGuardFn = (guard: Guard) => {
+    if (Array.isArray(guard)) {
+      return some(checkGuard);
+    } else if (typeof guard === "function") {
+      return predicateComparator;
+    } else if (isGuardValue(guard)) {
+      return flip(some(checkSingleRule));
+    }
+    return all(checkGuard);
+  };
 
-const selectCheckGuardFn = (guard: Guard) => {
-  if (Array.isArray(guard)) {
-    return some(checkGuard);
-  } else if (typeof guard === "function") {
-    return predicateComparator;
-  } else if (isGuardValue(guard)) {
-    return flip(some(checkSingleRule));
-  }
-  return all(checkGuard);
-};
-
-export function checkGuard(rules: Rule, guards: Guard): Promise<boolean> {
   // @ts-ignore
   const f: (r: Rule, c: Guard) => Promise<boolean> = selectCheckGuardFn(guards);
   return f(Array.isArray(rules) ? rules : [rules], guards);

@@ -46,7 +46,7 @@ type ObjectRuleValue =
 
 interface IArrayRuleValue<R> extends Array<IRuleValue<R>> {}
 
-export type IPredicate<R> = (x: R) => Promise<boolean>;
+export type IPredicate<R> = (x: R, y: any, z: any) => Promise<boolean>;
 
 type IRuleValue<R> =
   | R
