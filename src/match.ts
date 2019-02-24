@@ -51,14 +51,25 @@ const checkSingleCredential = async (
   for (const key in rule) {
     const credentialValue = credential[key as CredentialKey];
     const ruleValue = rule[key as CredentialKey] as SingleRuleValue;
-    const f = selectCheckRuleValueFn(ruleValue);
     // @ts-ignore
-    const match = await f(credentialValue, ruleValue);
+    const match = await checkRuleValue(credentialValue, ruleValue);
     if (!match) {
       return false;
     }
   }
   return true;
+};
+
+const checkRuleValue = (
+  credentialValue: CredentialValue,
+  ruleValue: RuleValue
+): Promise<boolean> => {
+  if (Array.isArray(ruleValue)) {
+    return some(checkRuleValue)(credentialValue, ruleValue);
+  } else if (typeof ruleValue === "object") {
+    return all(checkRuleValue)(credentialValue, ruleValue);
+  }
+  return checkSingleRuleValue(credentialValue, ruleValue);
 };
 
 const checkSingleRuleValue = (
@@ -71,14 +82,6 @@ const checkSingleRuleValue = (
   return equalComparator(credentialValue, ruleValue);
 };
 
-const selectCheckRuleValueFn = (ruleValue: RuleValue) => {
-  if (Array.isArray(ruleValue)) {
-    return some(checkSingleRuleValue);
-  } else {
-    return checkSingleRuleValue;
-  }
-};
-
 const selectCheckRuleFn = (rule: Rule) => {
   if (Array.isArray(rule)) {
     return some(checkRules);
@@ -89,11 +92,11 @@ const selectCheckRuleFn = (rule: Rule) => {
   }
 };
 
-export const checkRules = (
+export function checkRules(
   credentials: Credential,
   rule: Rule
-): Promise<boolean> => {
+): Promise<boolean> {
   const f = selectCheckRuleFn(rule);
   // @ts-ignore
   return f(Array.isArray(credentials) ? credentials : [credentials], rule);
-};
+}

@@ -5,7 +5,10 @@ export enum CredentialKey {
 }
 export enum Action {
   CREATE = "CREATE",
-  SELECT = "SELECT"
+  FIND = "FIND",
+  GET = "GET",
+  DELETE = "DELETE",
+  UPDATE = "UPDATE"
 }
 
 export enum Resource {
@@ -18,35 +21,59 @@ export enum Role {
   USER = "USER"
 }
 
-export type SingleCredentialValue = Action | Resource | Role;
+type SingleCredentialValue = Action | Resource | Role;
 
-export type ArrayCredentialValue = Action[] | Resource[] | Role[];
+type ArrayCredentialValue = Action[] | Resource[] | Role[];
+
+type ObjectCredentialValue =
+  | {
+      readonly [index: string]: Action;
+    }
+  | {
+      readonly [index: string]: Resource;
+    }
+  | {
+      readonly [index: string]: Role;
+    };
+
+interface IArrayCredentialValue<C> extends Array<ICredentialValue<C>> {}
+
+type ICredentialValue<C> =
+  | C
+  | IArrayCredentialValue<C>
+  | {
+      readonly [index: string]: ICredentialValue<C>;
+    };
 
 export interface SingleCredential {
-  readonly action?: Action | Action[];
-  readonly resource?: Resource | Action[];
-  readonly role?: Role | Role[];
+  readonly action?: ICredentialValue<Action>;
+  readonly resource?: ICredentialValue<Resource>;
+  readonly role?: ICredentialValue<Role>;
 }
-
-export type ArrayRuleValue = ArrayCredentialValue;
 
 export type SingleRuleValue = SingleCredentialValue;
 
-export type CredentialValue = SingleCredentialValue | ArrayCredentialValue;
+type ArrayRuleValue = ArrayCredentialValue;
 
-export type RuleValue = SingleRuleValue | ArrayRuleValue;
+export type CredentialValue =
+  | SingleCredentialValue
+  | ArrayCredentialValue
+  | ObjectCredentialValue;
+
+export type RuleValue =
+  | SingleRuleValue
+  | ArrayRuleValue
+  | ObjectCredentialValue;
 
 export type SingleRule = SingleCredential;
 
-export interface ArrayCredential extends Array<Credential> {}
-
 export type Credential = SingleCredential | SingleCredential[];
 
-export interface ObjectRule {
+interface ObjectRule {
   readonly [index: string]: Rule;
 }
 
-export interface ArrayRule extends Array<Rule> {}
+interface ArrayRule extends Array<Rule> {}
 
 export type Rule = SingleRule | ObjectRule | ArrayRule;
 

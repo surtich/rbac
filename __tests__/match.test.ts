@@ -1,5 +1,5 @@
 import { checkRules } from "../src/match";
-import { Action, Resource, Role } from "../src/types";
+import { Action, Resource, Role, Rule } from "../src/types";
 
 describe("By default policy is deny", () => {
   it("should fail with empty credentials and empty rules", async () => {
@@ -199,7 +199,7 @@ describe("Object (AND) tests", () => {
             role: Role.ADMIN
           },
           {
-            action: Action.SELECT,
+            action: Action.FIND,
             resource: Resource.COMMENT,
             role: Role.USER
           }
@@ -209,7 +209,7 @@ describe("Object (AND) tests", () => {
             role: Role.ADMIN
           },
           rule2: {
-            action: Action.SELECT,
+            action: Action.FIND,
             resource: Resource.COMMENT,
             role: Role.USER
           }
@@ -227,7 +227,7 @@ describe("Object (AND) tests", () => {
             role: Role.ADMIN
           },
           {
-            action: Action.SELECT,
+            action: Action.FIND,
             resource: Resource.COMMENT,
             role: Role.USER
           }
@@ -237,12 +237,12 @@ describe("Object (AND) tests", () => {
             role: Role.ADMIN
           },
           rule2: {
-            action: Action.SELECT,
+            action: Action.FIND,
             resource: Resource.COMMENT,
             role: Role.USER
           },
           rule3: {
-            action: Action.SELECT,
+            action: Action.FIND,
             resource: Resource.COMMENT,
             role: Role.ADMIN
           }
@@ -290,7 +290,7 @@ describe("Complex Test", () => {
               role: Role.ADMIN
             },
             rule2: {
-              action: Action.SELECT
+              action: Action.FIND
             }
           }
         ]
@@ -352,7 +352,7 @@ describe("Complex Test", () => {
             },
             rule2: [
               {
-                action: Action.SELECT
+                action: Action.FIND
               },
               {
                 action: Action.CREATE
@@ -378,7 +378,7 @@ describe("Complex Test", () => {
             },
             rule2: [
               {
-                action: Action.SELECT
+                action: Action.FIND
               },
               {
                 action: Action.CREATE,
@@ -398,7 +398,7 @@ describe("Complex Test", () => {
             role: Role.ADMIN
           },
           {
-            action: Action.SELECT,
+            action: Action.FIND,
             resource: Resource.COMMENT,
             role: Role.ADMIN
           },
@@ -415,7 +415,7 @@ describe("Complex Test", () => {
             },
             rule2: [
               {
-                action: Action.SELECT,
+                action: Action.FIND,
                 resource: Resource.COMMENT
               },
               {
@@ -434,7 +434,7 @@ describe("Crendential can be an object of simple keys", () => {
     expect(
       await checkRules(
         {
-          action: Action.SELECT,
+          action: Action.FIND,
           resource: Resource.COMMENT,
           role: Role.ADMIN
         },
@@ -448,7 +448,7 @@ describe("Crendential can be an object of simple keys", () => {
     expect(
       await checkRules(
         {
-          action: Action.SELECT,
+          action: Action.FIND,
           resource: Resource.COMMENT,
           role: Role.ADMIN
         },
@@ -507,7 +507,7 @@ describe("Crendential values can be an array", () => {
       )
     ).toBe(false);
   });
-  it("should work with credential and rule be both arrays", async () => {
+  it("should work with credential and rule being both arrays", async () => {
     expect(
       await checkRules(
         {
@@ -526,6 +526,167 @@ describe("Crendential values can be an array", () => {
         {
           role: [Role.ADMIN]
         }
+      )
+    ).toBe(false);
+  });
+  it("should work with multiple keys of arrays", async () => {
+    expect(
+      await checkRules(
+        {
+          action: [Action.CREATE, Action.FIND],
+          resource: [Resource.COMMENT, Resource.SPACE]
+        },
+        {
+          resource: Resource.SPACE
+        }
+      )
+    ).toBe(true);
+    expect(
+      await checkRules(
+        {
+          action: [Action.CREATE, Action.FIND],
+          resource: [Resource.COMMENT, Resource.SPACE]
+        },
+        {
+          action: [Action.CREATE, Action.FIND],
+          resource: [Resource.SPACE]
+        }
+      )
+    ).toBe(true);
+    expect(
+      await checkRules(
+        {
+          action: Action.CREATE,
+          resource: Resource.COMMENT
+        },
+        {
+          action: [Action.CREATE, Action.FIND],
+          resource: Resource.COMMENT
+        }
+      )
+    ).toBe(true);
+  });
+});
+
+describe("Object rule value tests", () => {
+  it("should work with rule values being objects", async () => {
+    expect(
+      await checkRules(
+        {
+          action: [Action.CREATE, Action.FIND],
+          resource: Resource.COMMENT
+        },
+        {
+          action: { action1: Action.CREATE, action2: Action.FIND },
+          resource: Resource.COMMENT
+        }
+      )
+    ).toBe(true);
+    expect(
+      await checkRules(
+        [
+          {
+            action: Action.CREATE,
+            resource: Resource.COMMENT
+          },
+          {
+            action: Action.FIND
+          }
+        ],
+        {
+          action: { action1: Action.CREATE, action2: Action.FIND },
+          resource: Resource.COMMENT
+        }
+      )
+    ).toBe(false);
+  });
+  it("should work with deeper nested objects in rule", async () => {
+    expect(
+      await checkRules(
+        {
+          action: [Action.FIND, Action.GET],
+          resource: Resource.COMMENT
+        },
+        {
+          action: {
+            actions1: [Action.CREATE, Action.FIND],
+            actions2: [Action.GET, Action.UPDATE]
+          },
+          resource: Resource.COMMENT
+        }
+      )
+    ).toBe(true);
+    expect(
+      await checkRules(
+        {
+          action: [Action.FIND, Action.GET],
+          resource: Resource.COMMENT
+        },
+        {
+          action: {
+            actions1: [Action.CREATE, Action.FIND],
+            actions2: [Action.GET, Action.UPDATE],
+            actions3: Action.DELETE
+          },
+          resource: Resource.COMMENT
+        }
+      )
+    ).toBe(false);
+    const rules: Rule = {
+      action: [
+        {
+          actions1: [Action.GET, Action.FIND],
+          actions2: {
+            action2_1: Action.CREATE,
+            action2_2: Action.DELETE
+          }
+        },
+        Action.UPDATE
+      ],
+      resource: Resource.COMMENT
+    };
+    expect(
+      await checkRules(
+        {
+          action: [Action.UPDATE],
+          resource: Resource.COMMENT
+        },
+        rules
+      )
+    ).toBe(true);
+    expect(
+      await checkRules(
+        {
+          action: [Action.GET, Action.CREATE, Action.DELETE],
+          resource: Resource.COMMENT
+        },
+        rules
+      )
+    ).toBe(true);
+    expect(
+      await checkRules(
+        {
+          action: [Action.CREATE, Action.DELETE],
+          resource: Resource.COMMENT
+        },
+        rules
+      )
+    ).toBe(false);
+    expect(
+      await checkRules(
+        {
+          action: [Action.GET, Action.DELETE],
+          resource: Resource.COMMENT
+        },
+        rules
+      )
+    ).toBe(false);
+    expect(
+      await checkRules(
+        {
+          action: [Action.GET, Action.CREATE, Action.DELETE]
+        },
+        rules
       )
     ).toBe(false);
   });
