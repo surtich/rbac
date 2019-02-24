@@ -1,16 +1,16 @@
 import {
-  Credential,
-  CredentialKey,
-  CredentialValue,
+  Guard,
+  GuardKey,
+  GuardValue,
   IPredicate,
-  isRuleValue,
-  PredicateRuleValue,
+  isGuardValue,
+  PredicateGuardValue,
   Rule,
   RuleKey,
   RuleValue,
-  SingleCredential,
-  SingleRule,
-  SingleRuleValue
+  SingleGuard,
+  SingleGuardValue,
+  SingleRule
 } from "./types";
 
 function falseComparator(): Promise<boolean> {
@@ -67,47 +67,40 @@ function all<T, K>(comparator: (x: T, y: K) => Promise<boolean>) {
   };
 }
 
-const checkRuleValue = (
-  credentialValue: CredentialValue,
-  ruleValue: RuleValue
+const checkGuardValue = (
+  ruleValue: RuleValue,
+  guardValue: GuardValue
+): Promise<boolean> => {
+  if (Array.isArray(guardValue)) {
+    return some(checkGuardValue)(ruleValue, guardValue);
+  } else if (typeof guardValue === "function") {
+    return predicateComparator(ruleValue, guardValue);
+  } else if (typeof guardValue === "object") {
+    return all(checkGuardValue)(ruleValue, guardValue);
+  }
+  return checkSingleGuardValue(ruleValue, guardValue);
+};
+
+const checkSingleGuardValue = (
+  ruleValue: RuleValue,
+  guardValue: SingleGuardValue
 ): Promise<boolean> => {
   if (Array.isArray(ruleValue)) {
-    return some(checkRuleValue)(credentialValue, ruleValue);
-  } else if (typeof ruleValue === "function") {
-    return predicateComparator(credentialValue, ruleValue);
-  } else if (typeof ruleValue === "object") {
-    return all(checkRuleValue)(credentialValue, ruleValue);
-  }
-  return checkSingleRuleValue(credentialValue, ruleValue);
-};
-
-const checkSingleRuleValue = (
-  credentialValue: CredentialValue,
-  ruleValue: SingleRuleValue
-): Promise<boolean> => {
-  if (Array.isArray(credentialValue)) {
-    return some(checkSingleRuleValue)(ruleValue, credentialValue);
+    return some(checkSingleGuardValue)(guardValue, ruleValue);
   }
   // @ts-ignore
-  return selectLastComparator(ruleValue)(credentialValue, ruleValue);
+  return selectLastComparator(guardValue)(ruleValue, guardValue);
 };
 
-const checkSingleCredential = async (
-  rule: SingleRule,
-  credential: SingleCredential
-) => {
+const checkSingleRule = async (guard: SingleGuard, rule: SingleRule) => {
   let match = true;
-  for (const key in rule) {
-    const credentialValue = credential[key as CredentialKey] as CredentialValue;
+  for (const key in guard) {
     const ruleValue = rule[key as RuleKey] as RuleValue;
-    if (!credentialValue) {
-      match = await missingCredentialKeyBehavior(
-        ruleValue,
-        credential,
-        key as RuleKey
-      );
+    const guardValue = guard[key as GuardKey] as GuardValue;
+    if (!ruleValue) {
+      match = await missingRuleKeyBehavior(guardValue, rule, key as GuardKey);
     } else {
-      match = await checkRuleValue(credentialValue, ruleValue);
+      match = await checkGuardValue(ruleValue, guardValue);
     }
     if (!match) {
       return false;
@@ -116,36 +109,31 @@ const checkSingleCredential = async (
   return match;
 };
 
-const missingCredentialKeyBehavior = (
-  ruleValue: RuleValue,
-  credential: SingleCredential,
-  _key: RuleKey
+const missingRuleKeyBehavior = (
+  guardValue: GuardValue,
+  rule: SingleRule,
+  _key: GuardKey
 ): Promise<boolean> => {
-  if (typeof ruleValue === "function") {
-    const f = ruleValue as PredicateRuleValue;
-    return f(credential);
+  if (typeof guardValue === "function") {
+    const f = guardValue as PredicateGuardValue;
+    return f(rule);
   }
   return Promise.resolve(false);
 };
 
-const selectCheckRuleFn = (rule: Rule) => {
-  if (Array.isArray(rule)) {
-    return some(checkRules);
-  } else if (typeof rule === "function") {
+const selectCheckGuardFn = (guard: Guard) => {
+  if (Array.isArray(guard)) {
+    return some(checkGuard);
+  } else if (typeof guard === "function") {
     return predicateComparator;
-  } else if (isRuleValue(rule)) {
-    return flip(some(checkSingleCredential));
+  } else if (isGuardValue(guard)) {
+    return flip(some(checkSingleRule));
   }
-  return all(checkRules);
+  return all(checkGuard);
 };
 
-export function checkRules(
-  credentials: Credential,
-  rule: Rule
-): Promise<boolean> {
+export function checkGuard(rules: Rule, guard: Guard): Promise<boolean> {
   // @ts-ignore
-  const f: (c: Credential, r: Rule) => Promise<boolean> = selectCheckRuleFn(
-    rule
-  );
-  return f(Array.isArray(credentials) ? credentials : [credentials], rule);
+  const f: (r: Rule, c: Guard) => Promise<boolean> = selectCheckGuardFn(guard);
+  return f(Array.isArray(rules) ? rules : [rules], guard);
 }

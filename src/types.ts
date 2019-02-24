@@ -1,9 +1,9 @@
-export enum CredentialKey {
+export enum RuleKey {
   "action" = "action",
   "resource" = "resource",
   "role" = "role"
 }
-export enum RuleKey {
+export enum GuardKey {
   "action" = "action",
   "resource" = "resource",
   "role" = "role",
@@ -28,11 +28,11 @@ export enum Role {
   USER = "USER"
 }
 
-type SingleCredentialValue = Action | Resource | Role;
+type SingleRuleValue = Action | Resource | Role;
 
-type ArrayCredentialValue = Action[] | Resource[] | Role[];
+type ArrayRuleValue = Action[] | Resource[] | Role[];
 
-type ObjectCredentialValue =
+type ObjectRuleValue =
   | {
       readonly [index: string]: Action;
     }
@@ -43,60 +43,54 @@ type ObjectCredentialValue =
       readonly [index: string]: Role;
     };
 
-interface IArrayCredentialValue<C> extends Array<ICredentialValue<C>> {}
+interface IArrayRuleValue<R> extends Array<IRuleValue<R>> {}
 
-export type IPredicate<T> = (x: T) => Promise<boolean>;
+export type IPredicate<R> = (x: R) => Promise<boolean>;
 
-type ICredentialValue<C> =
-  | C
-  | IArrayCredentialValue<C>
+type IRuleValue<R> =
+  | R
+  | IArrayRuleValue<R>
   | {
-      readonly [index: string]: ICredentialValue<C>;
+      readonly [index: string]: IRuleValue<R>;
     }
-  | IPredicate<C>;
+  | IPredicate<R>;
 
-export interface SingleCredential {
-  readonly action?: ICredentialValue<Action>;
-  readonly resource?: ICredentialValue<Resource>;
-  readonly role?: ICredentialValue<Role>;
+export interface SingleRule {
+  readonly action?: IRuleValue<Action>;
+  readonly resource?: IRuleValue<Resource>;
+  readonly role?: IRuleValue<Role>;
 }
 
-export interface SingleRule extends SingleCredential {
-  readonly predicate?: ICredentialValue<PredicateRuleValue>;
+export interface SingleGuard extends SingleRule {
+  readonly predicate?: IRuleValue<PredicateGuardValue>;
 }
 
-export type SingleRuleValue = SingleCredentialValue;
+export type SingleGuardValue = SingleRuleValue;
 
-type ArrayRuleValue = ArrayCredentialValue;
+type ArrayGuardValue = ArrayRuleValue;
 
-export type PredicateRuleValue = IPredicate<SingleCredential>;
+export type PredicateGuardValue = IPredicate<SingleRule>;
 
-export type CredentialValue =
-  | SingleCredentialValue
-  | ArrayCredentialValue
-  | ObjectCredentialValue;
+export type RuleValue = SingleRuleValue | ArrayRuleValue | ObjectRuleValue;
 
-export type RuleValue =
-  | SingleRuleValue
-  | ArrayRuleValue
-  | ObjectCredentialValue;
+export type GuardValue = SingleGuardValue | ArrayGuardValue | ObjectRuleValue;
 
-export type Credential = SingleCredential | SingleCredential[];
+export type Rule = SingleRule | SingleRule[];
 
-interface ObjectRule {
-  readonly [index: string]: Rule;
+interface ObjectGuard {
+  readonly [index: string]: Guard;
 }
 
-type PredicateRule = IPredicate<Credential>;
+type PredicateGuard = IPredicate<Rule>;
 
-interface ArrayRule extends Array<Rule> {}
+interface ArrayGuard extends Array<Guard> {}
 
-export type Rule = SingleRule | ObjectRule | ArrayRule | PredicateRule;
+export type Guard = SingleGuard | ObjectGuard | ArrayGuard | PredicateGuard;
 
-export const isRuleValue = (rule: Rule) => {
+export const isGuardValue = (guard: Guard) => {
   return (
-    typeof rule === "object" &&
-    Object.keys(rule).length > 0 &&
-    Object.keys(rule).every(key => Object.keys(RuleKey).includes(key))
+    typeof guard === "object" &&
+    Object.keys(guard).length > 0 &&
+    Object.keys(guard).every(key => Object.keys(GuardKey).includes(key))
   );
 };

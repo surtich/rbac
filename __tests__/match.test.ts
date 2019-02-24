@@ -1,25 +1,25 @@
-import { checkRules } from "../src/match";
-import { Action, Resource, Role, Rule, SingleCredential } from "../src/types";
+import { checkGuard } from "../src/match";
+import { Action, Guard, Resource, Role, SingleRule } from "../src/types";
 
 describe("By default policy is deny", () => {
-  it("should fail with empty credentials and empty rules", async () => {
-    expect(await checkRules([], [])).toBe(false);
-    expect(await checkRules([], {})).toBe(false);
-    expect(await checkRules({}, [])).toBe(false);
-    expect(await checkRules({}, {})).toBe(false);
-    expect(await checkRules([{}], [])).toBe(false);
-    expect(await checkRules({}, [{}])).toBe(false);
-    expect(await checkRules({}, [{}, {}])).toBe(false);
-    expect(await checkRules({}, { x: {}, y: {} })).toBe(false);
-    expect(await checkRules({}, { role: Role.ADMIN })).toBe(false);
-    expect(await checkRules([], { role: Role.ADMIN })).toBe(false);
-    expect(await checkRules({ role: Role.ADMIN }, {})).toBe(false);
-    expect(await checkRules({ role: Role.ADMIN }, [])).toBe(false);
-    expect(await checkRules({}, { role: [Role.ADMIN] })).toBe(false);
+  it("should fail with empty rules and empty guards", async () => {
+    expect(await checkGuard([], [])).toBe(false);
+    expect(await checkGuard([], {})).toBe(false);
+    expect(await checkGuard({}, [])).toBe(false);
+    expect(await checkGuard({}, {})).toBe(false);
+    expect(await checkGuard([{}], [])).toBe(false);
+    expect(await checkGuard({}, [{}])).toBe(false);
+    expect(await checkGuard({}, [{}, {}])).toBe(false);
+    expect(await checkGuard({}, { x: {}, y: {} })).toBe(false);
+    expect(await checkGuard({}, { role: Role.ADMIN })).toBe(false);
+    expect(await checkGuard([], { role: Role.ADMIN })).toBe(false);
+    expect(await checkGuard({ role: Role.ADMIN }, {})).toBe(false);
+    expect(await checkGuard({ role: Role.ADMIN }, [])).toBe(false);
+    expect(await checkGuard({}, { role: [Role.ADMIN] })).toBe(false);
   });
-  it("should fail with no empty credentials and empty rules", async () => {
+  it("should fail with no empty rules and empty guards", async () => {
     expect(
-      await checkRules(
+      await checkGuard(
         [
           {
             action: Action.CREATE,
@@ -31,9 +31,9 @@ describe("By default policy is deny", () => {
       )
     ).toBe(false);
   });
-  it("should fail with empty credentials and no empty rules", async () => {
+  it("should fail with empty rules and no empty guards", async () => {
     expect(
-      await checkRules([], {
+      await checkGuard([], {
         action: Action.CREATE,
         resource: Resource.COMMENT,
         role: Role.ADMIN
@@ -45,7 +45,7 @@ describe("By default policy is deny", () => {
 describe("Simple tests", () => {
   it("should pass when roles match", async () => {
     expect(
-      await checkRules(
+      await checkGuard(
         [
           {
             action: Action.CREATE,
@@ -61,7 +61,7 @@ describe("Simple tests", () => {
   });
   it("should fail when roles do not match", async () => {
     expect(
-      await checkRules(
+      await checkGuard(
         [
           {
             action: Action.CREATE,
@@ -78,7 +78,7 @@ describe("Simple tests", () => {
 
   it("should pass when all params match", async () => {
     expect(
-      await checkRules(
+      await checkGuard(
         [
           {
             action: Action.CREATE,
@@ -96,7 +96,7 @@ describe("Simple tests", () => {
   });
   it("should fail when some params do not match", async () => {
     expect(
-      await checkRules(
+      await checkGuard(
         [
           {
             action: Action.CREATE,
@@ -117,7 +117,7 @@ describe("Simple tests", () => {
 describe("Array (OR) tests", () => {
   it("should pass when params match and roles is and array of one element", async () => {
     expect(
-      await checkRules(
+      await checkGuard(
         [
           {
             action: Action.CREATE,
@@ -135,7 +135,7 @@ describe("Array (OR) tests", () => {
   });
   it("should pass when params match and roles is and array of multiple elements", async () => {
     expect(
-      await checkRules(
+      await checkGuard(
         [
           {
             action: Action.CREATE,
@@ -156,7 +156,7 @@ describe("Array (OR) tests", () => {
   });
   it("should fail when params match and roles is and array without match values", async () => {
     expect(
-      await checkRules(
+      await checkGuard(
         [
           {
             action: Action.CREATE,
@@ -175,9 +175,9 @@ describe("Array (OR) tests", () => {
       )
     ).toBe(false);
   });
-  it("should pass when some of multiple credentials match", async () => {
+  it("should pass when some of multiple rules match", async () => {
     expect(
-      await checkRules(
+      await checkGuard(
         [
           {
             action: Action.CREATE,
@@ -200,9 +200,9 @@ describe("Array (OR) tests", () => {
 });
 
 describe("Object (AND) tests", () => {
-  it("should pass when all objects rules match", async () => {
+  it("should pass when all objects guards match", async () => {
     expect(
-      await checkRules(
+      await checkGuard(
         [
           {
             action: Action.CREATE,
@@ -216,10 +216,10 @@ describe("Object (AND) tests", () => {
           }
         ],
         {
-          rule1: {
+          guard1: {
             role: Role.ADMIN
           },
-          rule2: {
+          guard2: {
             action: Action.FIND,
             resource: Resource.COMMENT,
             role: Role.USER
@@ -228,9 +228,9 @@ describe("Object (AND) tests", () => {
       )
     ).toBe(true);
   });
-  it("should fail when one objects rules do not match", async () => {
+  it("should fail when one objects guards do not match", async () => {
     expect(
-      await checkRules(
+      await checkGuard(
         [
           {
             action: Action.CREATE,
@@ -244,15 +244,15 @@ describe("Object (AND) tests", () => {
           }
         ],
         {
-          rule1: {
+          guard1: {
             role: Role.ADMIN
           },
-          rule2: {
+          guard2: {
             action: Action.FIND,
             resource: Resource.COMMENT,
             role: Role.USER
           },
-          rule3: {
+          guard3: {
             action: Action.FIND,
             resource: Resource.COMMENT,
             role: Role.ADMIN
@@ -266,7 +266,7 @@ describe("Object (AND) tests", () => {
 describe("Complex Test", () => {
   it("should work mixing OR & AND", async () => {
     expect(
-      await checkRules(
+      await checkGuard(
         [
           {
             action: Action.CREATE,
@@ -276,10 +276,10 @@ describe("Complex Test", () => {
         ],
         [
           {
-            rule1: {
+            guard1: {
               role: Role.ADMIN
             },
-            rule2: {
+            guard2: {
               resource: Resource.COMMENT
             }
           }
@@ -287,7 +287,7 @@ describe("Complex Test", () => {
       )
     ).toBe(true);
     expect(
-      await checkRules(
+      await checkGuard(
         [
           {
             action: Action.CREATE,
@@ -297,10 +297,10 @@ describe("Complex Test", () => {
         ],
         [
           {
-            rule1: {
+            guard1: {
               role: Role.ADMIN
             },
-            rule2: {
+            guard2: {
               action: Action.FIND
             }
           }
@@ -308,7 +308,7 @@ describe("Complex Test", () => {
       )
     ).toBe(false);
     expect(
-      await checkRules(
+      await checkGuard(
         [
           {
             action: Action.CREATE,
@@ -318,16 +318,16 @@ describe("Complex Test", () => {
         ],
         [
           {
-            rule1: {
-              rule1_1: { role: Role.ADMIN },
-              rule1_2: { resource: Resource.COMMENT }
+            guard1: {
+              guard1_1: { role: Role.ADMIN },
+              guard1_2: { resource: Resource.COMMENT }
             }
           }
         ]
       )
     ).toBe(true);
     expect(
-      await checkRules(
+      await checkGuard(
         [
           {
             action: Action.CREATE,
@@ -337,9 +337,9 @@ describe("Complex Test", () => {
         ],
         [
           {
-            rule1: {
-              rule1_1: { role: Role.USER },
-              rule1_2: { resource: Resource.COMMENT }
+            guard1: {
+              guard1_1: { role: Role.USER },
+              guard1_2: { resource: Resource.COMMENT }
             }
           }
         ]
@@ -348,7 +348,7 @@ describe("Complex Test", () => {
   });
   it("should work with deeper nesting", async () => {
     expect(
-      await checkRules(
+      await checkGuard(
         [
           {
             action: Action.CREATE,
@@ -358,10 +358,10 @@ describe("Complex Test", () => {
         ],
         [
           {
-            rule1: {
+            guard1: {
               role: Role.ADMIN
             },
-            rule2: [
+            guard2: [
               {
                 action: Action.FIND
               },
@@ -374,7 +374,7 @@ describe("Complex Test", () => {
       )
     ).toBe(true);
     expect(
-      await checkRules(
+      await checkGuard(
         [
           {
             action: Action.CREATE,
@@ -384,10 +384,10 @@ describe("Complex Test", () => {
         ],
         [
           {
-            rule1: {
+            guard1: {
               role: Role.ADMIN
             },
-            rule2: [
+            guard2: [
               {
                 action: Action.FIND
               },
@@ -401,7 +401,7 @@ describe("Complex Test", () => {
       )
     ).toBe(false);
     expect(
-      await checkRules(
+      await checkGuard(
         [
           {
             action: Action.CREATE,
@@ -421,10 +421,10 @@ describe("Complex Test", () => {
         ],
         [
           {
-            rule1: {
+            guard1: {
               role: Role.ADMIN
             },
-            rule2: [
+            guard2: [
               {
                 action: Action.FIND,
                 resource: Resource.COMMENT
@@ -443,7 +443,7 @@ describe("Complex Test", () => {
 describe("Crendential can be an object of simple keys", () => {
   it("should work with an object", async () => {
     expect(
-      await checkRules(
+      await checkGuard(
         {
           action: Action.FIND,
           resource: Resource.COMMENT,
@@ -457,7 +457,7 @@ describe("Crendential can be an object of simple keys", () => {
       )
     ).toBe(true);
     expect(
-      await checkRules(
+      await checkGuard(
         {
           action: Action.FIND,
           resource: Resource.COMMENT,
@@ -474,9 +474,9 @@ describe("Crendential can be an object of simple keys", () => {
 });
 
 describe("Crendential values can be an array", () => {
-  it("should work with one rule array and simple credential", async () => {
+  it("should work with one guard array and simple rule", async () => {
     expect(
-      await checkRules(
+      await checkGuard(
         {
           role: Role.USER
         },
@@ -486,7 +486,7 @@ describe("Crendential values can be an array", () => {
       )
     ).toBe(true);
     expect(
-      await checkRules(
+      await checkGuard(
         {
           role: Role.USER
         },
@@ -496,9 +496,9 @@ describe("Crendential values can be an array", () => {
       )
     ).toBe(false);
   });
-  it("should work with one credential array and simple rule", async () => {
+  it("should work with one rule array and simple guard", async () => {
     expect(
-      await checkRules(
+      await checkGuard(
         {
           role: [Role.ADMIN, Role.USER]
         },
@@ -508,7 +508,7 @@ describe("Crendential values can be an array", () => {
       )
     ).toBe(true);
     expect(
-      await checkRules(
+      await checkGuard(
         {
           role: [Role.USER]
         },
@@ -518,9 +518,9 @@ describe("Crendential values can be an array", () => {
       )
     ).toBe(false);
   });
-  it("should work with credential and rule being both arrays", async () => {
+  it("should work with rule and guard being both arrays", async () => {
     expect(
-      await checkRules(
+      await checkGuard(
         {
           role: [Role.ADMIN, Role.USER]
         },
@@ -530,7 +530,7 @@ describe("Crendential values can be an array", () => {
       )
     ).toBe(true);
     expect(
-      await checkRules(
+      await checkGuard(
         {
           role: [Role.USER]
         },
@@ -542,7 +542,7 @@ describe("Crendential values can be an array", () => {
   });
   it("should work with multiple keys of arrays", async () => {
     expect(
-      await checkRules(
+      await checkGuard(
         {
           action: [Action.CREATE, Action.FIND],
           resource: [Resource.COMMENT, Resource.SPACE]
@@ -553,7 +553,7 @@ describe("Crendential values can be an array", () => {
       )
     ).toBe(true);
     expect(
-      await checkRules(
+      await checkGuard(
         {
           action: [Action.CREATE, Action.FIND],
           resource: [Resource.COMMENT, Resource.SPACE]
@@ -565,7 +565,7 @@ describe("Crendential values can be an array", () => {
       )
     ).toBe(true);
     expect(
-      await checkRules(
+      await checkGuard(
         {
           action: Action.CREATE,
           resource: Resource.COMMENT
@@ -579,10 +579,10 @@ describe("Crendential values can be an array", () => {
   });
 });
 
-describe("Object rule value tests", () => {
-  it("should work with rule values being objects", async () => {
+describe("Object guard value tests", () => {
+  it("should work with guard values being objects", async () => {
     expect(
-      await checkRules(
+      await checkGuard(
         {
           action: [Action.CREATE, Action.FIND],
           resource: Resource.COMMENT
@@ -594,7 +594,7 @@ describe("Object rule value tests", () => {
       )
     ).toBe(true);
     expect(
-      await checkRules(
+      await checkGuard(
         [
           {
             action: Action.CREATE,
@@ -611,9 +611,9 @@ describe("Object rule value tests", () => {
       )
     ).toBe(false);
   });
-  it("should work with deeper nested objects in rule", async () => {
+  it("should work with deeper nested objects in guard", async () => {
     expect(
-      await checkRules(
+      await checkGuard(
         {
           action: [Action.FIND, Action.GET],
           resource: Resource.COMMENT
@@ -628,7 +628,7 @@ describe("Object rule value tests", () => {
       )
     ).toBe(true);
     expect(
-      await checkRules(
+      await checkGuard(
         {
           action: [Action.FIND, Action.GET],
           resource: Resource.COMMENT
@@ -643,7 +643,7 @@ describe("Object rule value tests", () => {
         }
       )
     ).toBe(false);
-    const rules: Rule = {
+    const guards: Guard = {
       action: [
         {
           actions1: [Action.GET, Action.FIND],
@@ -657,72 +657,72 @@ describe("Object rule value tests", () => {
       resource: Resource.COMMENT
     };
     expect(
-      await checkRules(
+      await checkGuard(
         {
           action: [Action.UPDATE],
           resource: Resource.COMMENT
         },
-        rules
+        guards
       )
     ).toBe(true);
     expect(
-      await checkRules(
+      await checkGuard(
         {
           action: [Action.GET, Action.CREATE, Action.DELETE],
           resource: Resource.COMMENT
         },
-        rules
+        guards
       )
     ).toBe(true);
     expect(
-      await checkRules(
+      await checkGuard(
         {
           action: [Action.CREATE, Action.DELETE],
           resource: Resource.COMMENT
         },
-        rules
+        guards
       )
     ).toBe(false);
     expect(
-      await checkRules(
+      await checkGuard(
         {
           action: [Action.GET, Action.DELETE],
           resource: Resource.COMMENT
         },
-        rules
+        guards
       )
     ).toBe(false);
     expect(
-      await checkRules(
+      await checkGuard(
         {
           action: [Action.GET, Action.CREATE, Action.DELETE]
         },
-        rules
+        guards
       )
     ).toBe(false);
   });
 });
-describe("Rule could be a function", () => {
+describe("Guard could be a function", () => {
   it("should work with naive functions", async () => {
-    expect(await checkRules([], () => Promise.resolve(true))).toBe(true);
-    expect(await checkRules([], () => Promise.resolve(false))).toBe(false);
+    expect(await checkGuard([], () => Promise.resolve(true))).toBe(true);
+    expect(await checkGuard([], () => Promise.resolve(false))).toBe(false);
   });
-  it("if credential params are received by the function", async () => {
+  it("if rule params are received by the function", async () => {
     expect(
-      await checkRules([{ action: Action.GET }], ([{ action }]) => {
+      await checkGuard([{ action: Action.GET }], ([{ action }]) => {
         return Promise.resolve(action === Action.GET);
       })
     ).toBe(true);
   });
   it("should work with array of functions", async () => {
     expect(
-      await checkRules(
+      await checkGuard(
         [],
         [() => Promise.resolve(false), () => Promise.resolve(true)]
       )
     ).toBe(true);
     expect(
-      await checkRules(
+      await checkGuard(
         [],
         [() => Promise.resolve(false), () => Promise.resolve(false)]
       )
@@ -730,36 +730,36 @@ describe("Rule could be a function", () => {
   });
   it("should work with object of functions", async () => {
     expect(
-      await checkRules([], {
+      await checkGuard([], {
         f: () => Promise.resolve(true),
         g: () => Promise.resolve(true)
       })
     ).toBe(true);
     expect(
-      await checkRules([], {
+      await checkGuard([], {
         f: () => Promise.resolve(true),
         g: () => Promise.resolve(false)
       })
     ).toBe(false);
   });
 });
-describe("Rule value could be a function", () => {
+describe("Guard value could be a function", () => {
   it("should work with naive functions", async () => {
     expect(
-      await checkRules({}, { predicate: () => Promise.resolve(true) })
+      await checkGuard({}, { predicate: () => Promise.resolve(true) })
     ).toBe(true);
     expect(
-      await checkRules([], { predicate: () => Promise.resolve(false) })
+      await checkGuard([], { predicate: () => Promise.resolve(false) })
     ).toBe(false);
   });
-  it("if credential value params are received by the function", async () => {
+  it("if rule value params are received by the function", async () => {
     expect(
-      await checkRules([{ action: Action.GET }], ([{ action }]) => {
+      await checkGuard([{ action: Action.GET }], ([{ action }]) => {
         return Promise.resolve(action === Action.GET);
       })
     ).toBe(true);
     expect(
-      await checkRules(
+      await checkGuard(
         [{ action: Action.GET }, { resource: Resource.COMMENT }],
         ([{ action }, { resource }]) => {
           return Promise.resolve(
@@ -769,38 +769,37 @@ describe("Rule value could be a function", () => {
       )
     ).toBe(true);
   });
-  it("if functions receives credentials params", async () => {
+  it("if functions receives rules params", async () => {
     expect(
-      await checkRules([{ role: Role.ADMIN, action: Action.GET }], {
+      await checkGuard([{ role: Role.ADMIN, action: Action.GET }], {
         action: Action.GET,
-        predicate: (credential: SingleCredential) => {
+        predicate: (rule: SingleRule) => {
           return Promise.resolve(
-            credential.role === Role.ADMIN && credential.action === Action.GET
+            rule.role === Role.ADMIN && rule.action === Action.GET
           );
         }
       })
     ).toBe(true);
     expect(
-      await checkRules([{ role: Role.ADMIN, action: Action.GET }], {
+      await checkGuard([{ role: Role.ADMIN, action: Action.GET }], {
         action: Action.DELETE,
-        predicate: (credential: SingleCredential) => {
+        predicate: (rule: SingleRule) => {
           return Promise.resolve(
-            credential.role === Role.ADMIN && credential.action === Action.GET
+            rule.role === Role.ADMIN && rule.action === Action.GET
           );
         }
       })
     ).toBe(false);
   });
-  it("if functions are called multiple times when credential is an array", async () => {
+  it("if functions are called multiple times when rule is an array", async () => {
     expect(
-      await checkRules(
+      await checkGuard(
         [{ role: Role.ADMIN, action: Action.GET }, { action: Action.DELETE }],
         {
-          predicate: (credential: SingleCredential) => {
+          predicate: (rule: SingleRule) => {
             return Promise.resolve(
-              (credential.role === Role.USER &&
-                credential.action === Action.GET) ||
-                credential.action === Action.DELETE
+              (rule.role === Role.USER && rule.action === Action.GET) ||
+                rule.action === Action.DELETE
             );
           }
         }
@@ -808,168 +807,156 @@ describe("Rule value could be a function", () => {
     ).toBe(true);
   });
 });
-describe("Regular Rule keys could be functions", () => {
+describe("Regular Guard keys could be functions", () => {
   it("should work with naive functions", async () => {
-    expect(await checkRules({}, { action: () => Promise.resolve(true) })).toBe(
+    expect(await checkGuard({}, { action: () => Promise.resolve(true) })).toBe(
       true
     );
-    expect(await checkRules([], { action: () => Promise.resolve(false) })).toBe(
+    expect(await checkGuard([], { action: () => Promise.resolve(false) })).toBe(
       false
     );
   });
-  it("should receive credential values", async () => {
+  it("should receive rule values", async () => {
     expect(
-      await checkRules(
+      await checkGuard(
         { action: Action.GET },
         {
-          action: (actionCredentialValue: Action) => {
-            return Promise.resolve(actionCredentialValue === Action.GET);
+          action: (actionRuleValue: Action) => {
+            return Promise.resolve(actionRuleValue === Action.GET);
           }
         }
       )
     ).toBe(true);
   });
-  it("should receive credential array values", async () => {
+  it("should receive rule array values", async () => {
     expect(
-      await checkRules(
+      await checkGuard(
         { action: [Action.GET, Action.FIND] },
         {
-          action: (actionCredentialValue: Action) => {
-            return Promise.resolve(actionCredentialValue.includes(Action.FIND));
+          action: (actionRuleValue: Action) => {
+            return Promise.resolve(actionRuleValue.includes(Action.FIND));
           }
         }
       )
     ).toBe(true);
     expect(
-      await checkRules(
+      await checkGuard(
         { action: [Action.GET] },
         {
-          action: (actionCredentialValue: Action) => {
-            return Promise.resolve(actionCredentialValue.includes(Action.FIND));
+          action: (actionRuleValue: Action) => {
+            return Promise.resolve(actionRuleValue.includes(Action.FIND));
           }
         }
       )
     ).toBe(false);
   });
-  it("should work with array of credentials", async () => {
+  it("should work with array of rules", async () => {
     expect(
-      await checkRules([{ action: Action.GET }, { action: Action.DELETE }], {
-        action: (actionCredentialValue: Action) => {
-          return Promise.resolve(actionCredentialValue.includes(Action.DELETE));
+      await checkGuard([{ action: Action.GET }, { action: Action.DELETE }], {
+        action: (actionRuleValue: Action) => {
+          return Promise.resolve(actionRuleValue.includes(Action.DELETE));
         }
       })
     ).toBe(true);
     expect(
-      await checkRules([{ action: Action.GET }, { action: Action.DELETE }], {
-        action: (actionCredentialValue: Action) => {
-          return Promise.resolve(actionCredentialValue.includes(Action.CREATE));
+      await checkGuard([{ action: Action.GET }, { action: Action.DELETE }], {
+        action: (actionRuleValue: Action) => {
+          return Promise.resolve(actionRuleValue.includes(Action.CREATE));
         }
       })
     ).toBe(false);
   });
-  it("should work with array of functions in rules", async () => {
+  it("should work with array of functions in guards", async () => {
     expect(
-      await checkRules(
+      await checkGuard(
         { action: Action.FIND },
         {
           action: [
-            (actionCredentialValue: Action) => {
-              return Promise.resolve(actionCredentialValue === Action.GET);
+            (actionRuleValue: Action) => {
+              return Promise.resolve(actionRuleValue === Action.GET);
             },
-            (actionCredentialValue: Action) => {
-              return Promise.resolve(actionCredentialValue === Action.FIND);
+            (actionRuleValue: Action) => {
+              return Promise.resolve(actionRuleValue === Action.FIND);
             }
           ]
         }
       )
     ).toBe(true);
     expect(
-      await checkRules(
+      await checkGuard(
         { action: Action.CREATE },
         {
           action: [
-            (actionCredentialValue: Action) => {
-              return Promise.resolve(actionCredentialValue === Action.GET);
+            (actionRuleValue: Action) => {
+              return Promise.resolve(actionRuleValue === Action.GET);
             },
-            (actionCredentialValue: Action) => {
-              return Promise.resolve(actionCredentialValue === Action.FIND);
+            (actionRuleValue: Action) => {
+              return Promise.resolve(actionRuleValue === Action.FIND);
             }
           ]
         }
       )
     ).toBe(false);
   });
-  it("should work with array of functions in rules", async () => {
+  it("should work with array of functions in guards", async () => {
     expect(
-      await checkRules(
+      await checkGuard(
         { action: [Action.FIND, Action.CREATE] },
         {
           action1: {
-            action: (actionCredentialValue: Action) => {
-              return Promise.resolve(
-                actionCredentialValue.includes(Action.FIND)
-              );
+            action: (actionRuleValue: Action) => {
+              return Promise.resolve(actionRuleValue.includes(Action.FIND));
             }
           },
           action2: {
-            action: (actionCredentialValue: Action) => {
-              return Promise.resolve(
-                actionCredentialValue.includes(Action.CREATE)
-              );
+            action: (actionRuleValue: Action) => {
+              return Promise.resolve(actionRuleValue.includes(Action.CREATE));
             }
           }
         }
       )
     ).toBe(true);
     expect(
-      await checkRules(
+      await checkGuard(
         { action: [Action.FIND, Action.CREATE] },
         {
           action1: {
-            action: (actionCredentialValue: Action) => {
-              return Promise.resolve(
-                actionCredentialValue.includes(Action.FIND)
-              );
+            action: (actionRuleValue: Action) => {
+              return Promise.resolve(actionRuleValue.includes(Action.FIND));
             }
           },
           action2: {
-            action: (actionCredentialValue: Action) => {
-              return Promise.resolve(
-                actionCredentialValue.includes(Action.GET)
-              );
+            action: (actionRuleValue: Action) => {
+              return Promise.resolve(actionRuleValue.includes(Action.GET));
             }
           }
         }
       )
     ).toBe(false);
   });
-  it("should work with multiple keys being functions in key rules", async () => {
+  it("should work with multiple keys being functions in key guards", async () => {
     expect(
-      await checkRules(
+      await checkGuard(
         { action: [Action.FIND, Action.CREATE], resource: Resource.COMMENT },
         {
-          action: (actionCredentialValue: Action) => {
-            return Promise.resolve(actionCredentialValue.includes(Action.FIND));
+          action: (actionRuleValue: Action) => {
+            return Promise.resolve(actionRuleValue.includes(Action.FIND));
           },
-          resource: (resourceCredentialValue: Resource) => {
-            return Promise.resolve(
-              resourceCredentialValue === Resource.COMMENT
-            );
+          resource: (resourceRuleValue: Resource) => {
+            return Promise.resolve(resourceRuleValue === Resource.COMMENT);
           }
         }
       )
     ).toBe(true);
     expect(
-      await checkRules(
+      await checkGuard(
         { action: [Action.FIND, Action.CREATE], resource: Resource.SPACE },
         {
-          action: (actionCredentialValue: Action) => {
-            return Promise.resolve(actionCredentialValue.includes(Action.FIND));
+          action: (actionRuleValue: Action) => {
+            return Promise.resolve(actionRuleValue.includes(Action.FIND));
           },
-          resource: (resourceCredentialValue: Resource) => {
-            return Promise.resolve(
-              resourceCredentialValue === Resource.COMMENT
-            );
+          resource: (resourceRuleValue: Resource) => {
+            return Promise.resolve(resourceRuleValue === Resource.COMMENT);
           }
         }
       )

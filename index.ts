@@ -1,1 +1,1 @@
-export { checkRules as default } from "./src/match";
+export { checkGuard as default } from "./src/match";
