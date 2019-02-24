@@ -139,8 +139,8 @@ const selectCheckGuardFn = (guard: Guard) => {
   return all(checkGuard);
 };
 
-export function checkGuard(rules: Rule, guard: Guard): Promise<boolean> {
+export function checkGuard(rules: Rule, guards: Guard): Promise<boolean> {
   // @ts-ignore
-  const f: (r: Rule, c: Guard) => Promise<boolean> = selectCheckGuardFn(guard);
-  return f(Array.isArray(rules) ? rules : [rules], guard);
+  const f: (r: Rule, c: Guard) => Promise<boolean> = selectCheckGuardFn(guards);
+  return f(Array.isArray(rules) ? rules : [rules], guards);
 }
