@@ -808,3 +808,171 @@ describe("Rule value could be a function", () => {
     ).toBe(true);
   });
 });
+describe("Regular Rule keys could be functions", () => {
+  it("should work with naive functions", async () => {
+    expect(await checkRules({}, { action: () => Promise.resolve(true) })).toBe(
+      true
+    );
+    expect(await checkRules([], { action: () => Promise.resolve(false) })).toBe(
+      false
+    );
+  });
+  it("should receive credential values", async () => {
+    expect(
+      await checkRules(
+        { action: Action.GET },
+        {
+          action: (actionCredentialValue: Action) => {
+            return Promise.resolve(actionCredentialValue === Action.GET);
+          }
+        }
+      )
+    ).toBe(true);
+  });
+  it("should receive credential array values", async () => {
+    expect(
+      await checkRules(
+        { action: [Action.GET, Action.FIND] },
+        {
+          action: (actionCredentialValue: Action) => {
+            return Promise.resolve(actionCredentialValue.includes(Action.FIND));
+          }
+        }
+      )
+    ).toBe(true);
+    expect(
+      await checkRules(
+        { action: [Action.GET] },
+        {
+          action: (actionCredentialValue: Action) => {
+            return Promise.resolve(actionCredentialValue.includes(Action.FIND));
+          }
+        }
+      )
+    ).toBe(false);
+  });
+  it("should work with array of credentials", async () => {
+    expect(
+      await checkRules([{ action: Action.GET }, { action: Action.DELETE }], {
+        action: (actionCredentialValue: Action) => {
+          return Promise.resolve(actionCredentialValue.includes(Action.DELETE));
+        }
+      })
+    ).toBe(true);
+    expect(
+      await checkRules([{ action: Action.GET }, { action: Action.DELETE }], {
+        action: (actionCredentialValue: Action) => {
+          return Promise.resolve(actionCredentialValue.includes(Action.CREATE));
+        }
+      })
+    ).toBe(false);
+  });
+  it("should work with array of functions in rules", async () => {
+    expect(
+      await checkRules(
+        { action: Action.FIND },
+        {
+          action: [
+            (actionCredentialValue: Action) => {
+              return Promise.resolve(actionCredentialValue === Action.GET);
+            },
+            (actionCredentialValue: Action) => {
+              return Promise.resolve(actionCredentialValue === Action.FIND);
+            }
+          ]
+        }
+      )
+    ).toBe(true);
+    expect(
+      await checkRules(
+        { action: Action.CREATE },
+        {
+          action: [
+            (actionCredentialValue: Action) => {
+              return Promise.resolve(actionCredentialValue === Action.GET);
+            },
+            (actionCredentialValue: Action) => {
+              return Promise.resolve(actionCredentialValue === Action.FIND);
+            }
+          ]
+        }
+      )
+    ).toBe(false);
+  });
+  it("should work with array of functions in rules", async () => {
+    expect(
+      await checkRules(
+        { action: [Action.FIND, Action.CREATE] },
+        {
+          action1: {
+            action: (actionCredentialValue: Action) => {
+              return Promise.resolve(
+                actionCredentialValue.includes(Action.FIND)
+              );
+            }
+          },
+          action2: {
+            action: (actionCredentialValue: Action) => {
+              return Promise.resolve(
+                actionCredentialValue.includes(Action.CREATE)
+              );
+            }
+          }
+        }
+      )
+    ).toBe(true);
+    expect(
+      await checkRules(
+        { action: [Action.FIND, Action.CREATE] },
+        {
+          action1: {
+            action: (actionCredentialValue: Action) => {
+              return Promise.resolve(
+                actionCredentialValue.includes(Action.FIND)
+              );
+            }
+          },
+          action2: {
+            action: (actionCredentialValue: Action) => {
+              return Promise.resolve(
+                actionCredentialValue.includes(Action.GET)
+              );
+            }
+          }
+        }
+      )
+    ).toBe(false);
+  });
+  it("should work with multiple keys being functions in key rules", async () => {
+    expect(
+      await checkRules(
+        { action: [Action.FIND, Action.CREATE], resource: Resource.COMMENT },
+        {
+          action: (actionCredentialValue: Action) => {
+            return Promise.resolve(actionCredentialValue.includes(Action.FIND));
+          },
+          resource: (resourceCredentialValue: Resource) => {
+            return Promise.resolve(
+              resourceCredentialValue === Resource.COMMENT
+            );
+          }
+        }
+      )
+    ).toBe(true);
+    expect(
+      await checkRules(
+        { action: [Action.FIND, Action.CREATE], resource: Resource.SPACE },
+        {
+          action: (actionCredentialValue: Action) => {
+            return Promise.resolve(actionCredentialValue.includes(Action.FIND));
+          },
+          resource: (resourceCredentialValue: Resource) => {
+            return Promise.resolve(
+              resourceCredentialValue === Resource.COMMENT
+            );
+          }
+        }
+      )
+    ).toBe(false);
+  });
+});

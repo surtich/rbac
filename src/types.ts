@@ -52,7 +52,8 @@ type ICredentialValue<C> =
   | IArrayCredentialValue<C>
   | {
       readonly [index: string]: ICredentialValue<C>;
-    };
+    }
+  | IPredicate<C>;
 
 export interface SingleCredential {
   readonly action?: ICredentialValue<Action>;

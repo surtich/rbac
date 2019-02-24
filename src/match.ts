@@ -4,13 +4,13 @@ import {
   CredentialValue,
   IPredicate,
   isRuleValue,
+  PredicateRuleValue,
   Rule,
   RuleKey,
   RuleValue,
   SingleCredential,
   SingleRule,
-  SingleRuleValue,
-  PredicateRuleValue
+  SingleRuleValue
 } from "./types";
 
 function falseComparator(): Promise<boolean> {
