@@ -691,3 +691,44 @@ describe("Object rule value tests", () => {
     ).toBe(false);
   });
 });
+describe("Rule could be a funtion", () => {
+  it("should work with navive functions", async () => {
+    expect(await checkRules([], () => Promise.resolve(true))).toBe(true);
+    expect(await checkRules([], () => Promise.resolve(false))).toBe(false);
+  });
+  it("if credentials params are received by the function", async () => {
+    expect(
+      await checkRules([{ action: Action.GET }], ([{ action }]) => {
+        return Promise.resolve(action === Action.GET);
+      })
+    ).toBe(true);
+  });
+  it("should work with array of functions", async () => {
+    expect(
+      await checkRules(
+        [],
+        [() => Promise.resolve(false), () => Promise.resolve(true)]
+      )
+    ).toBe(true);
+    expect(
+      await checkRules(
+        [],
+        [() => Promise.resolve(false), () => Promise.resolve(false)]
+      )
+    ).toBe(false);
+  });
+  it("should work with object of functions", async () => {
+    expect(
+      await checkRules([], {
+        f: () => Promise.resolve(true),
+        g: () => Promise.resolve(true)
+      })
+    ).toBe(true);
+    expect(
+      await checkRules([], {
+        f: () => Promise.resolve(true),
+        g: () => Promise.resolve(false)
+      })
+    ).toBe(false);
+  });
+});

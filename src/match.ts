@@ -14,6 +14,13 @@ function equalComparator<T>(x: T, y: T): Promise<boolean> {
   return Promise.resolve(x === y);
 }
 
+function predicateComparator<T>(
+  x: T,
+  f: (x: T) => Promise<boolean>
+): Promise<boolean> {
+  return f(x);
+}
+
 function flip<T, K, L>(f: (x: K, y: T) => L) {
   return (y: T, x: K) => f(x, y);
 }
@@ -85,6 +92,8 @@ const checkSingleRuleValue = (
 const selectCheckRuleFn = (rule: Rule) => {
   if (Array.isArray(rule)) {
     return some(checkRules);
+  } else if (typeof rule === "function") {
+    return predicateComparator;
   } else if (isRuleValue(rule)) {
     return flip(some(checkSingleCredential));
   } else {

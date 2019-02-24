@@ -51,6 +51,10 @@ export interface SingleCredential {
   readonly role?: ICredentialValue<Role>;
 }
 
+export interface SingleRule extends SingleCredential {
+  readonly predicate?: IArrayCredentialValue<PredicateRule>;
+}
+
 export type SingleRuleValue = SingleCredentialValue;
 
 type ArrayRuleValue = ArrayCredentialValue;
@@ -65,17 +69,17 @@ export type RuleValue =
   | ArrayRuleValue
   | ObjectCredentialValue;
 
-export type SingleRule = SingleCredential;
-
 export type Credential = SingleCredential | SingleCredential[];
 
 interface ObjectRule {
   readonly [index: string]: Rule;
 }
 
+type PredicateRule = (credential: Credential) => Promise<boolean>;
+
 interface ArrayRule extends Array<Rule> {}
 
-export type Rule = SingleRule | ObjectRule | ArrayRule;
+export type Rule = SingleRule | ObjectRule | ArrayRule | PredicateRule;
 
 export const isRuleValue = (rule: Rule) => {
   return (
