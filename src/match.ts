@@ -39,7 +39,9 @@ function flip<T, K, L>(f: (x: K, y: T) => L) {
   return (y: T, x: K) => f(x, y);
 }
 
-function some<T, K>(comparator: (x: T, y: K) => Promise<boolean>) {
+type Comparator<T, K> = (x: T, y: K) => Promise<boolean>;
+
+function some<T, K>(comparator: Comparator<T, K>) {
   return async (x: T, ys: K[]) => {
     for (const y of ys) {
       const match = await comparator(x, y);
@@ -51,7 +53,7 @@ function some<T, K>(comparator: (x: T, y: K) => Promise<boolean>) {
   };
 }
 
-function all<T, K>(comparator: (x: T, y: K) => Promise<boolean>) {
+function all<T, K>(comparator: Comparator<T, K>) {
   return async (x: T, obj: { [index: string]: K }) => {
     let key: string;
     let hasCompare = false;
@@ -87,6 +89,11 @@ const checkSingleGuardValue = (
 ): Promise<boolean> => {
   if (Array.isArray(ruleValue)) {
     return some(checkSingleGuardValue)(guardValue, ruleValue);
+  } else if (typeof ruleValue === "function") {
+    return predicateComparator(guardValue, ruleValue);
+  } else if (typeof ruleValue === "object") {
+    // @ts-ignore
+    return all(selectLastComparator(guardValue))(guardValue, ruleValue);
   }
   // @ts-ignore
   return selectLastComparator(guardValue)(ruleValue, guardValue);

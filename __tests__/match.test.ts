@@ -643,7 +643,7 @@ describe("Object guard value tests", () => {
         }
       )
     ).toBe(false);
-    const guards: Guard = {
+    const guard: Guard = {
       action: [
         {
           actions1: [Action.GET, Action.FIND],
@@ -662,7 +662,7 @@ describe("Object guard value tests", () => {
           action: [Action.UPDATE],
           resource: Resource.COMMENT
         },
-        guards
+        guard
       )
     ).toBe(true);
     expect(
@@ -671,7 +671,7 @@ describe("Object guard value tests", () => {
           action: [Action.GET, Action.CREATE, Action.DELETE],
           resource: Resource.COMMENT
         },
-        guards
+        guard
       )
     ).toBe(true);
     expect(
@@ -680,7 +680,7 @@ describe("Object guard value tests", () => {
           action: [Action.CREATE, Action.DELETE],
           resource: Resource.COMMENT
         },
-        guards
+        guard
       )
     ).toBe(false);
     expect(
@@ -689,7 +689,7 @@ describe("Object guard value tests", () => {
           action: [Action.GET, Action.DELETE],
           resource: Resource.COMMENT
         },
-        guards
+        guard
       )
     ).toBe(false);
     expect(
@@ -697,7 +697,7 @@ describe("Object guard value tests", () => {
         {
           action: [Action.GET, Action.CREATE, Action.DELETE]
         },
-        guards
+        guard
       )
     ).toBe(false);
   });
@@ -959,6 +959,113 @@ describe("Regular Guard keys could be functions", () => {
             return Promise.resolve(resourceRuleValue === Resource.COMMENT);
           }
         }
+      )
+    ).toBe(false);
+  });
+});
+describe("Rule keys could be funtions and objects", () => {
+  it("should work with naive functions", async () => {
+    expect(
+      await checkGuard(
+        { role: () => Promise.resolve(true) },
+        { role: Role.ADMIN }
+      )
+    ).toBe(true);
+    expect(
+      await checkGuard(
+        { role: () => Promise.resolve(false) },
+        { role: Role.ADMIN }
+      )
+    ).toBe(false);
+  });
+  it("guards could receive simple guard params", async () => {
+    expect(
+      await checkGuard(
+        { role: (role: Role) => Promise.resolve(role === Role.ADMIN) },
+        { role: Role.ADMIN }
+      )
+    ).toBe(true);
+    expect(
+      await checkGuard(
+        { role: (role: Role) => Promise.resolve(role === Role.USER) },
+        { role: [Role.ADMIN, Role.USER] }
+      )
+    ).toBe(true);
+    expect(
+      await checkGuard(
+        { role: (role: Role) => Promise.resolve(role === Role.USER) },
+        { role1: { role: Role.ADMIN }, role2: { role: Role.USER } }
+      )
+    ).toBe(false);
+    expect(
+      await checkGuard(
+        {
+          action: (action: Action) => Promise.resolve(action === Action.FIND),
+          role: (role: Role) => Promise.resolve(role === Role.USER)
+        },
+        { role: Role.USER, action: Action.FIND }
+      )
+    ).toBe(true);
+    expect(
+      await checkGuard(
+        {
+          action: (action: Action) => Promise.resolve(action === Action.FIND),
+          role: (role: Role) => Promise.resolve(role === Role.USER)
+        },
+        { role: Role.USER, action: Action.FIND }
+      )
+    ).toBe(true);
+    expect(
+      await checkGuard(
+        {
+          action: (action: Action) => Promise.resolve(action === Action.FIND),
+          role: (role: Role) => Promise.resolve(role === Role.USER)
+        },
+        { role: Role.USER, action: Action.GET }
+      )
+    ).toBe(false);
+    expect(
+      await checkGuard(
+        {
+          action: (action: Action) => Promise.resolve(action === Action.FIND),
+          role: (role: Role) => Promise.resolve(role === Role.USER)
+        },
+        [{ role: Role.USER, action: Action.GET }, { action: Action.FIND }]
+      )
+    ).toBe(true);
+  });
+  it("if guard can be an array of functions ", async () => {
+    expect(
+      await checkGuard(
+        {
+          role: [
+            (role: Role) => Promise.resolve(role === Role.ADMIN),
+            (role: Role) => Promise.resolve(role === Role.USER)
+          ]
+        },
+        { role: Role.ADMIN }
+      )
+    ).toBe(true);
+    expect(
+      await checkGuard(
+        {
+          role: [
+            (role: Role) => Promise.resolve(role === Role.ADMIN),
+            (role: Role) => Promise.resolve(role === Role.USER)
+          ]
+        },
+        { role1: { role: Role.ADMIN }, role2: { role: Role.USER } }
+      )
+    ).toBe(true);
+    expect(
+      await checkGuard(
+        {
+          role: [
+            (role: Role) => Promise.resolve(role === Role.ADMIN),
+            (role: Role) => Promise.resolve(role === Role.USER)
+          ]
+        },
+        { role1: { role: Role.ADMIN }, role2: { role: Role.GUESS } }
       )
     ).toBe(false);
   });

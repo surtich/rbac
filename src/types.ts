@@ -25,7 +25,8 @@ export enum Resource {
 
 export enum Role {
   ADMIN = "ADMIN",
-  USER = "USER"
+  USER = "USER",
+  GUESS = "GUESS"
 }
 
 type SingleRuleValue = Action | Resource | Role;
