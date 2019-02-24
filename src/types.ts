@@ -45,6 +45,8 @@ type ObjectCredentialValue =
 
 interface IArrayCredentialValue<C> extends Array<ICredentialValue<C>> {}
 
+export type IPredicate<T> = (x: T) => Promise<boolean>;
+
 type ICredentialValue<C> =
   | C
   | IArrayCredentialValue<C>
@@ -59,12 +61,14 @@ export interface SingleCredential {
 }
 
 export interface SingleRule extends SingleCredential {
-  readonly predicate?: ICredentialValue<PredicateRule>;
+  readonly predicate?: ICredentialValue<PredicateRuleValue>;
 }
 
 export type SingleRuleValue = SingleCredentialValue;
 
 type ArrayRuleValue = ArrayCredentialValue;
+
+export type PredicateRuleValue = IPredicate<SingleCredential>;
 
 export type CredentialValue =
   | SingleCredentialValue
@@ -82,7 +86,7 @@ interface ObjectRule {
   readonly [index: string]: Rule;
 }
 
-type PredicateRule = (credential: Credential) => Promise<boolean>;
+type PredicateRule = IPredicate<Credential>;
 
 interface ArrayRule extends Array<Rule> {}
 

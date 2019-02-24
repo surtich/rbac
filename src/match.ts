@@ -2,12 +2,15 @@ import {
   Credential,
   CredentialKey,
   CredentialValue,
+  IPredicate,
   isRuleValue,
   Rule,
+  RuleKey,
   RuleValue,
   SingleCredential,
   SingleRule,
-  SingleRuleValue
+  SingleRuleValue,
+  PredicateRuleValue
 } from "./types";
 
 function falseComparator(): Promise<boolean> {
@@ -20,12 +23,12 @@ function equalComparator<T>(x: T, y: T): Promise<boolean> {
 
 function predicateComparator<T>(
   x: T,
-  f: (x: T) => Promise<boolean>
+  f: (y: T) => Promise<boolean>
 ): Promise<boolean> {
   return f(x);
 }
 
-function selectLastComparator<T>(y: T) {
+function selectLastComparator<T>(y: T | IPredicate<T>) {
   if (typeof y === "function") {
     return predicateComparator;
   }
@@ -93,16 +96,36 @@ const checkSingleCredential = async (
   rule: SingleRule,
   credential: SingleCredential
 ) => {
+  let match = true;
   for (const key in rule) {
-    const credentialValue = credential[key as CredentialKey];
-    const ruleValue = rule[key as CredentialKey] as SingleRuleValue;
-    // @ts-ignore
-    const match = await checkRuleValue(credentialValue, ruleValue);
+    const credentialValue = credential[key as CredentialKey] as CredentialValue;
+    const ruleValue = rule[key as RuleKey] as RuleValue;
+    if (!credentialValue) {
+      match = await missingCredentialKeyBehavior(
+        ruleValue,
+        credential,
+        key as RuleKey
+      );
+    } else {
+      match = await checkRuleValue(credentialValue, ruleValue);
+    }
     if (!match) {
       return false;
     }
   }
-  return true;
+  return match;
+};
+
+const missingCredentialKeyBehavior = (
+  ruleValue: RuleValue,
+  credential: SingleCredential,
+  _key: RuleKey
+): Promise<boolean> => {
+  if (typeof ruleValue === "function") {
+    const f = ruleValue as PredicateRuleValue;
+    return f(credential);
+  }
+  return Promise.resolve(false);
 };
 
 const selectCheckRuleFn = (rule: Rule) => {
@@ -120,7 +143,9 @@ export function checkRules(
   credentials: Credential,
   rule: Rule
 ): Promise<boolean> {
-  const f = selectCheckRuleFn(rule);
   // @ts-ignore
+  const f: (c: Credential, r: Rule) => Promise<boolean> = selectCheckRuleFn(
+    rule
+  );
   return f(Array.isArray(credentials) ? credentials : [credentials], rule);
 }

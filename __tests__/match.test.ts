@@ -1,5 +1,5 @@
 import { checkRules } from "../src/match";
-import { Action, Resource, Role, Rule } from "../src/types";
+import { Action, Resource, Role, Rule, SingleCredential } from "../src/types";
 
 describe("By default policy is deny", () => {
   it("should fail with empty credentials and empty rules", async () => {
@@ -769,13 +769,40 @@ describe("Rule value could be a function", () => {
       )
     ).toBe(true);
   });
-  it("if functions and keys work well together", async () => {
+  it("if functions receives credentials params", async () => {
+    expect(
+      await checkRules([{ role: Role.ADMIN, action: Action.GET }], {
+        action: Action.GET,
+        predicate: (credential: SingleCredential) => {
+          return Promise.resolve(
+            credential.role === Role.ADMIN && credential.action === Action.GET
+          );
+        }
+      })
+    ).toBe(true);
+    expect(
+      await checkRules([{ role: Role.ADMIN, action: Action.GET }], {
+        action: Action.DELETE,
+        predicate: (credential: SingleCredential) => {
+          return Promise.resolve(
+            credential.role === Role.ADMIN && credential.action === Action.GET
+          );
+        }
+      })
+    ).toBe(false);
+  });
+  it("if functions are called multiple times when credential is an array", async () => {
     expect(
       await checkRules(
-        { role: Role.ADMIN, action: Action.GET },
+        [{ role: Role.ADMIN, action: Action.GET }, { action: Action.DELETE }],
         {
-          action: Action.GET,
-          predicate: () => Promise.resolve(true)
+          predicate: (credential: SingleCredential) => {
+            return Promise.resolve(
+              (credential.role === Role.USER &&
+                credential.action === Action.GET) ||
+                credential.action === Action.DELETE
+            );
+          }
         }
       )
     ).toBe(true);
