@@ -60,10 +60,8 @@ describe("Decorator tests", () => {
     const Secure = makeSecureDecorator({ getCredentials });
     class Test {
       @Secure({
-        guards: {
-          resource: Resource.COMMENT,
-          role: Role.USER
-        }
+        resource: Resource.COMMENT,
+        role: Role.USER
       })
       public fail() {
         return mockfn();
@@ -80,9 +78,7 @@ describe("Decorator tests", () => {
     });
     class Test {
       @Secure({
-        guards: {
-          role: Role.USER
-        }
+        role: Role.USER
       })
       public success() {
         return mockfn();
@@ -97,14 +93,17 @@ describe("Decorator tests", () => {
     const mockfn = jest.fn();
     const Secure = makeSecureDecorator({ getCredentials, data: Action.CREATE });
     class Test {
-      @Secure({
-        extraData: Resource.COMMENT,
-        onFail: (action: Action, resource: Resource) => {
-          expect(action).toBe(Action.CREATE);
-          expect(resource).toBe(Resource.COMMENT);
-          return "ko";
+      @Secure(
+        {},
+        {
+          extraData: Resource.COMMENT,
+          onFail: (action: Action, resource: Resource) => {
+            expect(action).toBe(Action.CREATE);
+            expect(resource).toBe(Resource.COMMENT);
+            return "ko";
+          }
         }
-      })
+      )
       public fail() {
         return mockfn();
       }
@@ -118,17 +117,20 @@ describe("Decorator tests", () => {
     const mockfn = jest.fn();
     const Secure = makeSecureDecorator({ getCredentials, data: Action.CREATE });
     class Test {
-      @Secure({
-        extraData: Resource.COMMENT,
-        onFail: (action: Action, resource: Resource) => {
-          expect(action).toBe(Action.CREATE);
-          expect(resource).toBe(Resource.COMMENT);
-          return (role: Role) => {
-            expect(role).toBe(Role.GUESS);
-            return "ko";
-          };
+      @Secure(
+        {},
+        {
+          extraData: Resource.COMMENT,
+          onFail: (action: Action, resource: Resource) => {
+            expect(action).toBe(Action.CREATE);
+            expect(resource).toBe(Resource.COMMENT);
+            return (role: Role) => {
+              expect(role).toBe(Role.GUESS);
+              return "ko";
+            };
+          }
         }
-      })
+      )
       public fail(_role: Role) {
         return mockfn();
       }

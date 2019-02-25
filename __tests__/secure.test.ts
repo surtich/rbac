@@ -32,18 +32,14 @@ describe("Basic secure tests", () => {
     const s = makeSecure({ getCredentials });
     expect(
       await s({
-        guards: {
-          action: Action.CREATE,
-          resource: Resource.COMMENT
-        }
+        action: Action.CREATE,
+        resource: Resource.COMMENT
       })
     ).toBe(true);
     expect(
       await s({
-        guards: {
-          action: Action.CREATE,
-          resource: Resource.SPACE
-        }
+        action: Action.CREATE,
+        resource: Resource.SPACE
       })
     ).toBe(false);
   });
@@ -62,7 +58,7 @@ describe("Basic secure tests", () => {
         })
     });
     expect(await s()).toBe(true);
-    expect(await s({ guards: { role: Role.USER } })).toBe(true);
+    expect(await s({ role: Role.USER })).toBe(true);
   });
 });
 describe("should work when changing default returns", () => {
@@ -74,18 +70,14 @@ describe("should work when changing default returns", () => {
     });
     expect(
       await s({
-        guards: {
-          action: Action.CREATE,
-          resource: Resource.COMMENT
-        }
+        action: Action.CREATE,
+        resource: Resource.COMMENT
       })
     ).toBe("ok");
     expect(
       await s({
-        guards: {
-          action: Action.CREATE,
-          resource: Resource.SPACE
-        }
+        action: Action.CREATE,
+        resource: Resource.SPACE
       })
     ).toBe("ko");
   });
@@ -98,18 +90,14 @@ describe("should work when changing default returns", () => {
     });
     expect(
       await s({
-        guards: {
-          action: Action.CREATE,
-          resource: Resource.COMMENT
-        }
+        action: Action.CREATE,
+        resource: Resource.COMMENT
       })
     ).toBe("ok");
     try {
       await s({
-        guards: {
-          action: Action.CREATE,
-          resource: Resource.SPACE
-        }
+        action: Action.CREATE,
+        resource: Resource.SPACE
       });
     } catch (err) {
       expect(err.message).toBe("ko");
@@ -124,24 +112,28 @@ describe("should work when changing inline returns", () => {
       onDefaultSuccess: "ok"
     });
     expect(
-      await s({
-        guards: {
+      await s(
+        {
           action: Action.CREATE,
           resource: Resource.COMMENT
         },
-        onFail: "KO",
-        onSuccess: "OK"
-      })
+        {
+          onFail: "KO",
+          onSuccess: "OK"
+        }
+      )
     ).toBe("OK");
     expect(
-      await s({
-        guards: {
+      await s(
+        {
           action: Action.CREATE,
           resource: Resource.SPACE
         },
-        onFail: "KO",
-        onSuccess: "OK"
-      })
+        {
+          onFail: "KO",
+          onSuccess: "OK"
+        }
+      )
     ).toBe("KO");
   });
 });
@@ -153,24 +145,24 @@ describe("can pass data and extraData", () => {
   it("should pass data", async () => {
     expect(
       await s({
-        guards: {
-          action: (_: any, action: Action) =>
-            Promise.resolve(action === Action.CREATE)
-        }
+        action: (_: any, action: Action) =>
+          Promise.resolve(action === Action.CREATE)
       })
     ).toBe(true);
   });
   it("should pass extra data", async () => {
     expect(
-      await s<Resource>({
-        extraData: Resource.COMMENT,
-        guards: {
+      await s<Resource>(
+        {
           action: (_: any, action: Action, resource: Resource) =>
             Promise.resolve(
               action === Action.CREATE && resource === Resource.COMMENT
             )
+        },
+        {
+          extraData: Resource.COMMENT
         }
-      })
+      )
     ).toBe(true);
   });
 });

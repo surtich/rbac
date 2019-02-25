@@ -19,7 +19,6 @@ export interface SecureParams<
   SuccessType = any,
   FailType = any
 > {
-  readonly guards?: Guard;
   readonly extraData?: AdditionalDataType;
   readonly onSuccess?: SuccessType;
   readonly onFail?: FailType;
@@ -34,6 +33,7 @@ export function makeSecure<AdditionalDataType = any>({
   data
 }: SecureConfig<AdditionalDataType>) {
   return async function<ExtraDataType = any>(
+    guards: Guard = {},
     secureParams: SecureParams<ExtraDataType> = {}
   ): Promise<SecureResult> {
     const returnSecureResult = (value: any) => {
@@ -46,7 +46,7 @@ export function makeSecure<AdditionalDataType = any>({
       }
     };
 
-    const { guards = {}, onSuccess, onFail, extraData } = secureParams;
+    const { onSuccess, onFail, extraData } = secureParams;
     const { roles = [], rules = [] } = ({} = await getCredentials());
 
     if (roles.includes(Role.ADMIN)) {

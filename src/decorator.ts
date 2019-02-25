@@ -1,10 +1,12 @@
 import { makeSecure, SecureConfig, SecureParams } from "./secure";
+import { Guard } from "./types";
 
 export function makeSecureDecorator<AdditionalDataType = any>(
   secureConfig: SecureConfig<AdditionalDataType>
 ) {
   const secure = makeSecure(secureConfig);
   return function Secure<ExtraDataType = any>(
+    guards: Guard = {},
     secureParams: SecureParams<ExtraDataType> = {}
   ) {
     return function(
@@ -25,7 +27,7 @@ export function makeSecureDecorator<AdditionalDataType = any>(
           args[_i - 0] = arguments[_i];
         }
 
-        return secure(secureParams).then(result => {
+        return secure(guards, secureParams).then(result => {
           if (result === true) {
             return originalMethod.apply(this, args);
           } else if (typeof result === "function") {
