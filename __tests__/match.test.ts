@@ -1,5 +1,5 @@
 import { checkGuard } from "../src/match";
-import { Action, Guard, Resource, Role, Rule, SingleRule } from "../src/types";
+import { Action, Guard, Resource, Role, SingleRule } from "../src/types";
 
 describe("By default policy is deny", () => {
   it("should fail with empty rules and empty guards", async () => {
@@ -1137,7 +1137,9 @@ describe("guard and rule function values can receive additional data", () => {
         { role: Role.ADMIN },
         ([{ role }], action, resource) => {
           return Promise.resolve(
-            role === Role.ADMIN && action === Action.CREATE && resource === Resource.COMMENT
+            role === Role.ADMIN &&
+              action === Action.CREATE &&
+              resource === Resource.COMMENT
           );
         },
         Action.CREATE,

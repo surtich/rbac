@@ -1,0 +1,39 @@
+import { makeSecure, SecureConfig, SecureParams } from "./secure";
+
+export function makeSecureDecorator<AdditionalDataType = any>(
+  secureConfig: SecureConfig<AdditionalDataType>
+) {
+  const secure = makeSecure(secureConfig);
+  return function Secure<ExtraDataType = any>(
+    secureParams: SecureParams<ExtraDataType> = {}
+  ) {
+    return function(
+      target: any,
+      propertyKey: string,
+      descriptor: PropertyDescriptor
+    ) {
+      if (descriptor === undefined) {
+        descriptor = Object.getOwnPropertyDescriptor(
+          target,
+          propertyKey
+        ) as PropertyDescriptor;
+      }
+      const originalMethod = descriptor.value;
+      descriptor.value = function() {
+        const args: any[] = [];
+        for (let _i = 0; _i < arguments.length; _i++) {
+          args[_i - 0] = arguments[_i];
+        }
+
+        return secure(secureParams).then(result => {
+          if (result === true) {
+            return originalMethod.apply(this, args);
+          } else if (typeof result === "function") {
+            return result(...args);
+          }
+          return result;
+        });
+      };
+    };
+  };
+}

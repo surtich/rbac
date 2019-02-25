@@ -1,1 +1,1 @@
-export { checkGuard as default } from "./src/match";
+export { makeSecureDecorator } from "./src/decorator";

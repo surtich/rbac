@@ -1,5 +1,5 @@
-import { secure, UserCredentials } from "../src/secure";
-import { Action, Guard, Resource, Role, Rule, SingleRule } from "../src/types";
+import { makeSecure, UserCredentials } from "../src/secure";
+import { Action, Resource, Role, Rule } from "../src/types";
 
 const getEmptyCredentials = (): Promise<UserCredentials> => Promise.resolve({});
 
@@ -29,7 +29,7 @@ const getCredentials = (): Promise<UserCredentials> => {
 
 describe("Basic secure tests", () => {
   it("should work with simple rules and guards", async () => {
-    const s = secure({ getCredentials });
+    const s = makeSecure({ getCredentials });
     expect(
       await s({
         guards: {
@@ -48,12 +48,14 @@ describe("Basic secure tests", () => {
     ).toBe(false);
   });
   it("by default security policy is deny", async () => {
-    expect(await secure({ getCredentials: getEmptyCredentials })()).toBe(false);
-    const s = secure({ getCredentials });
+    expect(await makeSecure({ getCredentials: getEmptyCredentials })()).toBe(
+      false
+    );
+    const s = makeSecure({ getCredentials });
     expect(await s()).toBe(false);
   });
   it("ADMIN role have full access", async () => {
-    const s = secure({
+    const s = makeSecure({
       getCredentials: () =>
         Promise.resolve({
           roles: [Role.ADMIN]
@@ -65,7 +67,7 @@ describe("Basic secure tests", () => {
 });
 describe("should work when changing default returns", () => {
   it("secure could return a string", async () => {
-    const s = secure({
+    const s = makeSecure({
       getCredentials,
       onDefaultFail: "ko",
       onDefaultSuccess: "ok"
@@ -89,7 +91,7 @@ describe("should work when changing default returns", () => {
   });
   it("secure could return a function or an error", async () => {
     expect.assertions(2);
-    const s = secure({
+    const s = makeSecure({
       getCredentials,
       onDefaultFail: new Error("ko"),
       onDefaultSuccess: () => "ok"
@@ -116,7 +118,7 @@ describe("should work when changing default returns", () => {
 });
 describe("should work when changing inline returns", () => {
   it("secure could return a string", async () => {
-    const s = secure({
+    const s = makeSecure({
       getCredentials,
       onDefaultFail: "ko",
       onDefaultSuccess: "ok"
@@ -144,7 +146,7 @@ describe("should work when changing inline returns", () => {
   });
 });
 describe("can pass data and extraData", () => {
-  const s = secure<Action>({
+  const s = makeSecure<Action>({
     data: Action.CREATE,
     getCredentials
   });
