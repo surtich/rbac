@@ -169,4 +169,87 @@ describe("**** DECORATOR TESTS ****", () => {
   describe("Decorator tests", () => {
     it("should fail with empty guards", async () => {});
   });
+
+  describe("Allow & Deny decorator tests", () => {
+    const mockfn = jest.fn((...args) => args);
+    const Allow = makeSecureDecorator({
+      getCredentials: () => Promise.resolve({})
+    });
+    const Deny = makeSecureDecorator({
+      getCredentials: () => Promise.resolve({}),
+      onDefaultSuccess: false,
+      onDefaultFail: true
+    });
+    class Test {
+      @Allow((_, __, ___, [allowParam]) => Promise.resolve(allowParam === true))
+      public simpleAllow(allowParam: any) {
+        return mockfn("simpleAllow", allowParam);
+      }
+
+      @Deny((_, __, ___, [denyParam]) => Promise.resolve(denyParam === true))
+      public simpleDeny(denyParam: any) {
+        return mockfn("simpleDeny", denyParam);
+      }
+
+      @Allow((_, __, ___, [allowParam]) => Promise.resolve(allowParam === true))
+      @Deny((_, __, ___, [____, denyParam]) =>
+        Promise.resolve(denyParam === true)
+      )
+      public allowAfterDeny(allowParam: any, denyParam: any) {
+        return mockfn("allowAfterDeny", allowParam, denyParam);
+      }
+
+      @Deny((_, __, ___, [____, denyParam]) =>
+        Promise.resolve(denyParam === true)
+      )
+      @Allow((_, __, ___, [allowParam]) => Promise.resolve(allowParam === true))
+      public denyAfterAllow(allowParam: any, denyParam: any) {
+        return mockfn("denyAfterAllow", allowParam, denyParam);
+      }
+    }
+    it("If success allow works", async () => {
+      const result = await new Test().simpleAllow(true);
+      expect(mockfn.mock.calls.length).toBe(1);
+      expect(result).toEqual(["simpleAllow", true]);
+    });
+    it("If fail allow works", async () => {
+      const result = await new Test().simpleAllow(false);
+      expect(mockfn.mock.calls.length).toBe(0);
+      expect(result).toEqual(false);
+    });
+    it("If success deny works", async () => {
+      const result = await new Test().simpleDeny(true);
+      expect(mockfn.mock.calls.length).toBe(0);
+      expect(result).toEqual(false);
+    });
+    it("If fail deny works", async () => {
+      const result = await new Test().simpleDeny(false);
+      expect(mockfn.mock.calls.length).toBe(1);
+      expect(result).toEqual(["simpleDeny", false]);
+    });
+    it("If success allowAfterDeny works", async () => {
+      let result = await new Test().allowAfterDeny(true, true);
+      expect(mockfn.mock.calls.length).toBe(0);
+      expect(result).toEqual(false);
+
+      mockfn.mockClear();
+      result = await new Test().allowAfterDeny(true, false);
+      expect(mockfn.mock.calls.length).toBe(1);
+      expect(result).toEqual(["allowAfterDeny", true, false]);
+
+      mockfn.mockClear();
+      result = await new Test().allowAfterDeny(false, true);
+      expect(mockfn.mock.calls.length).toBe(0);
+      expect(result).toEqual(false);
+
+      mockfn.mockClear();
+      result = await new Test().allowAfterDeny(false, false);
+      expect(mockfn.mock.calls.length).toBe(0);
+      expect(result).toEqual(false);
+    });
+    it("If fails when deny comes after allow. Deny should always come before allow!", async () => {
+      await new Test().denyAfterAllow(true, false);
+      expect(mockfn.mock.calls.length).toBe(1); // caution protected method is called!
+    });
+  });
 });

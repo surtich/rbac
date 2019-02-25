@@ -48,19 +48,13 @@ export function makeSecure<AdditionalDataType = any>({
     };
 
     const { onSuccess, onFail, extraData } = secureParams;
-    const { roles = [], rules = [] } = ({} = await getCredentials());
+    const credentials = await getCredentials();
+    const { roles = [], rules = [] } = credentials || {};
 
-    if (roles.includes(Role.ADMIN)) {
-      return Promise.resolve(true);
+    let result = roles.includes(Role.ADMIN);
+    if (!result) {
+      result = await checkGuard(rules, guards, data, extraData, functionParams);
     }
-
-    const result = await checkGuard(
-      rules,
-      guards,
-      data,
-      extraData,
-      functionParams
-    );
 
     return returnSecureResult(
       result === true

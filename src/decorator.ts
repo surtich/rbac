@@ -20,6 +20,7 @@ export function makeSecureDecorator<AdditionalDataType = any>(
           propertyKey
         ) as PropertyDescriptor;
       }
+
       const originalMethod = descriptor.value;
       descriptor.value = function() {
         const args: any[] = [];
