@@ -139,4 +139,23 @@ describe("Decorator tests", () => {
     expect(mockfn.mock.calls.length).toBe(0);
     expect(result).toBe("ko");
   });
+  it("if params passed to the protected function are received by de secure funtion", async () => {
+    expect.assertions(3);
+    const mockfn = jest.fn(() => "ok");
+    const Secure = makeSecureDecorator({
+      getCredentials: () => Promise.resolve({})
+    });
+    class Test {
+      @Secure((_, __, ___, [action]) => {
+        expect(action).toBe(Action.CREATE);
+        return Promise.resolve(action === Action.CREATE);
+      })
+      public success(_action: Action) {
+        return mockfn();
+      }
+    }
+    const result = await new Test().success(Action.CREATE);
+    expect(mockfn.mock.calls.length).toBe(1);
+    expect(result).toBe("ok");
+  });
 });

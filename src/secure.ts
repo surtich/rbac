@@ -32,9 +32,10 @@ export function makeSecure<AdditionalDataType = any>({
   onDefaultFail = false,
   data
 }: SecureConfig<AdditionalDataType>) {
-  return async function<ExtraDataType = any>(
+  return async function<ExtraDataType = any, ProtectedParamsDataType = any>(
     guards: Guard = {},
-    secureParams: SecureParams<ExtraDataType> = {}
+    secureParams: SecureParams<ExtraDataType> = {},
+    functionParams?: ProtectedParamsDataType
   ): Promise<SecureResult> {
     const returnSecureResult = (value: any) => {
       if (value instanceof Error) {
@@ -53,7 +54,13 @@ export function makeSecure<AdditionalDataType = any>({
       return Promise.resolve(true);
     }
 
-    const result = await checkGuard(rules, guards, data, extraData);
+    const result = await checkGuard(
+      rules,
+      guards,
+      data,
+      extraData,
+      functionParams
+    );
 
     return returnSecureResult(
       result === true

@@ -5,9 +5,9 @@ export function makeSecureDecorator<AdditionalDataType = any>(
   secureConfig: SecureConfig<AdditionalDataType>
 ) {
   const secure = makeSecure(secureConfig);
-  return function Secure<ExtraDataType = any>(
+  return function Secure<ExtraDataType = any, ProtectedParamsDataType = any>(
     guards: Guard = {},
-    secureParams: SecureParams<ExtraDataType> = {}
+    secureParams: SecureParams<ExtraDataType, ProtectedParamsDataType> = {}
   ) {
     return function(
       target: any,
@@ -27,7 +27,7 @@ export function makeSecureDecorator<AdditionalDataType = any>(
           args[_i - 0] = arguments[_i];
         }
 
-        return secure(guards, secureParams).then(result => {
+        return secure(guards, secureParams, args).then(result => {
           if (result === true) {
             return originalMethod.apply(this, args);
           } else if (typeof result === "function") {

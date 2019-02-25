@@ -1148,3 +1148,11 @@ describe("guard and rule function values can receive additional data", () => {
     ).toBe(true);
   });
 });
+
+describe("guard could be an action", () => {
+  it("if guard action is called", async () => {
+    const mockfn = jest.fn().mockResolvedValue(true);
+    expect(await checkGuard([], mockfn)).toBe(true);
+    expect(mockfn.mock.calls.length).toBe(1);
+  });
+});

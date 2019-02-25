@@ -21,12 +21,12 @@ function equalComparator<T>(x: T, y: T): Promise<boolean> {
   return Promise.resolve(x === y);
 }
 
-function createPredicateComparator<D, E>(data: D, extraData: E) {
+function createPredicateComparator<D, E, P>(data: D, extraData: E, params: P) {
   return function predicateComparator<K>(
     x: K,
-    f: (x: K, y: D, z: E) => Promise<boolean>
+    f: (x: K, y: D, z: E, p: P) => Promise<boolean>
   ): Promise<boolean> {
-    return f(x, data, extraData);
+    return f(x, data, extraData, params);
   };
 }
 
@@ -64,16 +64,26 @@ function all<T, K>(comparator: Comparator<T, K>) {
   };
 }
 
-export function checkGuard<AdditonalDataType = any, ExtraDataType = any>(
+export function checkGuard<
+  AdditonalDataType = any,
+  ExtraDataType = any,
+  ProtectedParamDataType = any
+>(
   rules: Rule,
   guards: Guard,
   data?: AdditonalDataType,
-  extraData?: ExtraDataType
+  extraData?: ExtraDataType,
+  protectedParamData?: ProtectedParamDataType
 ): Promise<boolean> {
   const predicateComparator = createPredicateComparator<
     AdditonalDataType,
-    ExtraDataType
-  >(data as AdditonalDataType, extraData as ExtraDataType);
+    ExtraDataType,
+    ProtectedParamDataType
+  >(
+    data as AdditonalDataType,
+    extraData as ExtraDataType,
+    protectedParamData as ProtectedParamDataType
+  );
 
   function selectLastComparator<T>(y: T | IPredicate<T>) {
     if (typeof y === "function") {
