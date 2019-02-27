@@ -88,10 +88,19 @@ interface ArrayGuard extends Array<Guard> {}
 
 export type Guard = SingleGuard | ObjectGuard | ArrayGuard | PredicateGuard;
 
+export const isRuleValue = (rule: Rule) => {
+  return (
+    typeof rule === "string" ||
+    (typeof rule === "object" &&
+      Object.keys(rule).every(key => Object.keys(RuleKey).includes(key)))
+  );
+};
+
 export const isGuardValue = (guard: Guard) => {
   return (
-    typeof guard === "object" &&
-    Object.keys(guard).length > 0 &&
-    Object.keys(guard).every(key => Object.keys(GuardKey).includes(key))
+    typeof guard === "string" ||
+    (typeof guard === "object" &&
+      Object.keys(guard).length > 0 &&
+      Object.keys(guard).every(key => Object.keys(GuardKey).includes(key)))
   );
 };

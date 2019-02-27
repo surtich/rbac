@@ -1,80 +1,97 @@
-import { isGuardValue } from "./types";
+import { Action, isGuardValue, isRuleValue, Resource, Role } from "./types";
 
 type Comparator<T, K> = (x: T, y: K) => Promise<boolean>;
 
-function equalComparator<T>(x: T, y: T) {
-  console.log(">>>>>equalComparator", x, y);
-  return Promise.resolve(y === x);
-}
-function predicateComparator<T>(f: (x: T) => Promise<boolean>, x: T) {
-  console.log(">>>>>predicateComparator", f, x);
-  return f(x);
-}
-
-function someComparator<T, K>(
-  comparator: Comparator<T, K>
-): Comparator<T[], K> {
-  return async (xs: T[], y: K) => {
-    console.log(">>>>>someComparator", xs, y);
-    for (const x of xs) {
-      const match = await comparator(x, y);
-      if (match) {
-        return true;
+const listComparator = (defaultMatch = true) =>
+  function<T, K>(
+    comparator: Comparator<T, K>,
+    needCompare = false
+  ): Comparator<T[], K> {
+    return async (xs: T[] | { [index: string]: T }, y: K) => {
+      console.log(">>>>>listComparator", xs, y, defaultMatch, needCompare);
+      let hasCompare = false;
+      for (const key in xs) {
+        // @ts-ignore
+        const x = xs[key];
+        hasCompare = true;
+        const match = await comparator(x, y);
+        if (match === defaultMatch) {
+          return defaultMatch;
+        }
       }
-    }
-    return false;
+      return !needCompare || (needCompare && hasCompare)
+        ? !defaultMatch
+        : defaultMatch;
+    };
   };
+
+const someComparator = listComparator(true);
+const allComparator = listComparator(false);
+
+function isPrimitive(x: any) {
+  return (
+    typeof x === "string" || typeof x === "boolean" || typeof x === "number"
+  );
 }
 
-function allComparator<T, K>(
-  comparator: Comparator<T, K>
-): Comparator<{ [index: string]: T }, K> {
-  return async (obj: { [index: string]: T }, y: K) => {
-    console.log(">>>>>allComparator", obj, y);
-    let key: string;
-    let hasCompare = false;
-    for (key in obj) {
-      hasCompare = true;
-      const x = obj[key];
-      const match = await comparator(x, y);
-      if (!match) {
-        return false;
-      }
-    }
-    return hasCompare;
-  };
-}
-
-function typeComparator<T, K>(inverse = false): Comparator<T, K> {
-  return function(x: T, y: K | T) {
-    console.log(">>>>>typeComparator", x, y);
-    if (Array.isArray(x)) {
-      return someComparator(typeComparator(inverse))(x, y);
+function typeComparator<T, K>(onMissingKey = false): Comparator<T, K> {
+  return async function(x: T, y: K | T) {
+    console.log(">>>>>typeComparator", onMissingKey, x, y);
+    if (typeof x === "boolean") {
+      return x;
+    } else if (typeof y === "boolean") {
+      return y;
+    } else if (isPrimitive(x)) {
+      return isPrimitive(y) ? x === y : typeComparator(!onMissingKey)(y, x);
+    } else if (x instanceof Promise) {
+      return typeComparator(onMissingKey)(await x, y);
+    } else if (Array.isArray(x)) {
+      return someComparator(typeComparator(onMissingKey), false)(x, y);
     } else if (isGuardValue(x)) {
-      return keyComparator(inverse)(x as any, y as any);
+      return isRuleValue(y)
+        ? keyComparator(
+            typeComparator(onMissingKey),
+            missingKeyComparator(onMissingKey)
+          )(x as any, y as any)
+        : typeComparator(!onMissingKey)(y, x);
     } else if (typeof x === "object") {
-      // @ts-ignore
-      return allComparator(typeComparator(inverse))(x, y);
+      return allComparator(typeComparator(onMissingKey), true)(x as any, y);
     } else if (typeof x === "function") {
-      return predicateComparator(x as any, y);
-    } else if (inverse) {
-      return typeComparator(false)(y, x);
+      return typeComparator(onMissingKey)(x(y), y);
     }
-    return equalComparator(x, y);
+    return x === y;
   };
 }
 
-function keyComparator<T, K>(inverse = false) {
+function missingKeyComparator<T, K>(
+  onMissingKey = false,
+  testKey = "predicate"
+) {
+  return (key: string) => (val: T, obj: K) => {
+    if (key === testKey) {
+      return typeComparator(onMissingKey)(val, obj);
+    }
+    return Promise.resolve(onMissingKey);
+  };
+}
+
+function keyComparator<T, K>(
+  matchKeyComparator: Comparator<T, K>,
+  missingKeyComparator: (key: string) => Comparator<T, { [index: string]: K }>
+) {
   return async (objX: { [index: string]: T }, objY: { [index: string]: K }) => {
-    console.log(">>>>>typeComparator", objX, objY);
+    console.log(">>>>>keyComparator", objX, objY);
     let match = true;
     for (const key in objX) {
       const valX = objX[key];
+      console.log("key>>>>>", key);
       if (!(key in objY)) {
-        match = await missingKeyBehavior(key, valX, objY, inverse);
+        match = await missingKeyComparator(key)(valX, objY);
       } else {
         const valY = objY[key];
-        match = await typeComparator(inverse)(valX, valY);
+        console.log("ValX>>>>>", valX);
+        console.log("ValX>>>>>", valY);
+        match = await matchKeyComparator(valX, valY);
       }
       if (!match) {
         return false;
@@ -84,38 +101,19 @@ function keyComparator<T, K>(inverse = false) {
   };
 }
 
-function missingKeyBehavior<T, K>(
-  _key: string,
-  valX: T,
-  objY: K,
-  inverse = false
-) {
-  console.log("########missingKeyBehavior", _key, valX, objY, inverse);
-  if (!inverse) {
-    return true;
-  }
-  return typeComparator(inverse)(valX, objY);
+export default function secureComparator(credentials: any, guards: any) {
+  return typeComparator(false)(guards, credentials);
 }
 
-function compare(credentials: any, guards: any) {
-  return typeComparator(true)(guards, credentials);
-}
-
-const myCredentials = {
-  action: "GET"
+const credentials: any = {
+  action: Action.FIND,
+  role: "QQ"
 };
-
-const myGuards = {
-  action: "GET",
-  predicate: {
-    x: async () => true,
-    y: async (args: any) => {
-      console.log("@@@@@", args);
-      return false;
-    }
+const guards: any = {
+  guard2: {
+    action: Action.FIND,
+    role: "QQ"
   }
 };
 
-compare(myCredentials, myGuards).then(result => {
-  console.log(">>>>>>", result);
-});
+//compare(guards, credentials).then(r => console.log(r));

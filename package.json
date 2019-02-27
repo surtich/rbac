@@ -5,7 +5,7 @@
   "license": "MIT",
   "scripts": {
     "start": "ts-node-dev --respawn src/match2",
-    "test": "jest __tests__ --watch"
+    "test": "jest __tests__/match* --watch"
   },
   "devDependencies": {
     "@types/jest": "^24.0.6",
